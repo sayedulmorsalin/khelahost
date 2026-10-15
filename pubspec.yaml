@@ -1,0 +1,39 @@
+name: khelahost
+description: "KhelaHost - Mobile Game Tournament Hosting App"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Firebase
+  firebase_core: ^3.13.1
+  cloud_firestore: ^5.6.9
+  firebase_auth: ^5.5.4
+
+  # Utilities
+  uuid: ^4.5.1
+  intl: ^0.20.2
+  share_plus: ^10.1.4
+
+  # UI
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
+
