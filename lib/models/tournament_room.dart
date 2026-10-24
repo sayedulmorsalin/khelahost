@@ -49,6 +49,7 @@ class TournamentRoom {
   final String hostId;
   final List<Player> players;
   final String status; // 'waiting' | 'started' | 'closed'
+  final DateTime? credentialsVisibleAt;
 
   TournamentRoom({
     required this.id,
@@ -64,7 +65,15 @@ class TournamentRoom {
     required this.hostId,
     required this.players,
     required this.status,
+    this.credentialsVisibleAt,
   });
+
+  bool get hasCredentials =>
+      roomId.trim().isNotEmpty || roomPassword.trim().isNotEmpty;
+
+  bool get areCredentialsRevealed =>
+      credentialsVisibleAt == null ||
+      !DateTime.now().isBefore(credentialsVisibleAt!);
 
   Map<String, dynamic> toMap() => {
         'name': name,
@@ -79,6 +88,9 @@ class TournamentRoom {
         'hostId': hostId,
         'players': players.map((p) => p.toMap()).toList(),
         'status': status,
+        'credentialsVisibleAt': credentialsVisibleAt != null
+            ? Timestamp.fromDate(credentialsVisibleAt!)
+            : null,
       };
 
   factory TournamentRoom.fromDoc(DocumentSnapshot doc) {
@@ -104,6 +116,9 @@ class TournamentRoom {
           .whereType<Player>()
           .toList(),
       status: data['status']?.toString() ?? 'waiting',
+      credentialsVisibleAt: data['credentialsVisibleAt'] != null
+          ? _parseDateTime(data['credentialsVisibleAt'])
+          : null,
     );
   }
 
@@ -119,14 +134,19 @@ class TournamentRoom {
   TournamentRoom copyWith({
     String? status,
     List<Player>? players,
+    String? roomId,
+    String? roomPassword,
+    int? maxPlayers,
+    DateTime? credentialsVisibleAt,
+    bool clearCredentialsTimer = false,
   }) =>
       TournamentRoom(
         id: id,
         name: name,
         game: game,
-        roomId: roomId,
-        roomPassword: roomPassword,
-        maxPlayers: maxPlayers,
+        roomId: roomId ?? this.roomId,
+        roomPassword: roomPassword ?? this.roomPassword,
+        maxPlayers: maxPlayers ?? this.maxPlayers,
         prizePool: prizePool,
         rules: rules,
         startTime: startTime,
@@ -134,5 +154,8 @@ class TournamentRoom {
         hostId: hostId,
         players: players ?? this.players,
         status: status ?? this.status,
+        credentialsVisibleAt: clearCredentialsTimer
+            ? null
+            : (credentialsVisibleAt ?? this.credentialsVisibleAt),
       );
 }

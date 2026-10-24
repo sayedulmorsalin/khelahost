@@ -132,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
+                  physics: const BouncingScrollPhysics(),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: MediaQuery.of(context).size.height -

@@ -114,4 +114,32 @@ class RoomService {
       return list;
     });
   }
+
+  // Update in-game room credentials and optional reveal timer
+  Future<void> updateCredentials(
+    String docId, {
+    required String roomId,
+    required String roomPassword,
+    DateTime? credentialsVisibleAt,
+    bool clearTimer = false,
+  }) async {
+    final Map<String, dynamic> updates = {
+      'roomId': roomId.trim(),
+      'roomPassword': roomPassword.trim(),
+    };
+    if (clearTimer || credentialsVisibleAt == null) {
+      updates['credentialsVisibleAt'] = null;
+    } else {
+      updates['credentialsVisibleAt'] =
+          Timestamp.fromDate(credentialsVisibleAt);
+    }
+    await _db.collection(_collection).doc(docId).update(updates);
+  }
+
+  // Instantly reveal credentials to all players
+  Future<void> revealCredentialsImmediately(String docId) async {
+    await _db.collection(_collection).doc(docId).update({
+      'credentialsVisibleAt': null,
+    });
+  }
 }

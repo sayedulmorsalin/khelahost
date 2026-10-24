@@ -152,7 +152,14 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                     const SizedBox(height: 16),
 
                     // Room credentials card
-                    RoomInfoCard(room: room),
+                    RoomInfoCard(
+                      room: room,
+                      isHost: isHost,
+                      onEditCredentials:
+                          isHost ? () => _showEditCredentialsSheet(room) : null,
+                      onRevealNow:
+                          isHost ? () => _revealCredentialsNow(room) : null,
+                    ),
                     const SizedBox(height: 16),
 
                     // Tournament info grid
@@ -477,24 +484,25 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildHostControls(TournamentRoom room) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
+        // Set / Edit Credentials button
+        SizedBox(
+          width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => _service.updateStatus(
-              room.id,
-              room.status == 'started' ? 'waiting' : 'started',
-            ),
+            onPressed: () => _showEditCredentialsSheet(room),
             icon: Icon(
-              room.status == 'started'
-                  ? Icons.pause_rounded
-                  : Icons.play_arrow_rounded,
+              room.hasCredentials ? Icons.edit_rounded : Icons.key_rounded,
+              size: 18,
             ),
             label: Text(
-                room.status == 'started' ? 'PAUSE GAME' : 'START GAME'),
+              room.hasCredentials
+                  ? 'EDIT ROOM ID & PASSWORD'
+                  : 'SET IN-GAME ROOM ID & PASSWORD',
+            ),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.accentGreen,
-              side: const BorderSide(color: AppTheme.accentGreen),
+              foregroundColor: AppTheme.accentGold,
+              side: const BorderSide(color: AppTheme.accentGold),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -506,27 +514,422 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _closeRoom(room),
-            icon: const Icon(Icons.close_rounded),
-            label: const Text('CLOSE ROOM'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.accentRed,
-              side: const BorderSide(color: AppTheme.accentRed),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              textStyle: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                letterSpacing: 1,
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _service.updateStatus(
+                  room.id,
+                  room.status == 'started' ? 'waiting' : 'started',
+                ),
+                icon: Icon(
+                  room.status == 'started'
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                ),
+                label: Text(
+                    room.status == 'started' ? 'PAUSE GAME' : 'START GAME'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.accentGreen,
+                  side: const BorderSide(color: AppTheme.accentGreen),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    letterSpacing: 1,
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _closeRoom(room),
+                icon: const Icon(Icons.close_rounded),
+                label: const Text('CLOSE ROOM'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.accentRed,
+                  side: const BorderSide(color: AppTheme.accentRed),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
+    );
+  }
+
+  Future<void> _revealCredentialsNow(TournamentRoom room) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.bgCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Reveal Credentials Now?',
+          style: GoogleFonts.rajdhani(
+              color: AppTheme.textPrimary, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'This will immediately reveal the Room ID and Password to all registered participants.',
+          style: GoogleFonts.inter(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accentGreen,
+            ),
+            child: const Text('Reveal Now'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true && mounted) {
+      await _service.revealCredentialsImmediately(room.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Credentials revealed to all players!'),
+            backgroundColor: AppTheme.accentGreen,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showEditCredentialsSheet(TournamentRoom room) async {
+    final roomIdCtrl = TextEditingController(text: room.roomId);
+    final passwordCtrl = TextEditingController(text: room.roomPassword);
+    bool obscurePassword = true;
+
+    // Determine initial timer mode
+    String timerMode = 'immediate';
+    DateTime? customRevealTime;
+
+    if (room.credentialsVisibleAt != null) {
+      final diff = room.startTime.difference(room.credentialsVisibleAt!);
+      if (diff.inMinutes == 15) {
+        timerMode = '15min';
+      } else if (diff.inMinutes == 30) {
+        timerMode = '30min';
+      } else {
+        timerMode = 'custom';
+        customRevealTime = room.credentialsVisibleAt;
+      }
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: AppTheme.bgCard,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(
+                top: BorderSide(color: AppTheme.accent, width: 1.5),
+              ),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.divider,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      const Icon(Icons.vpn_key_rounded,
+                          color: AppTheme.accent, size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ROOM CREDENTIALS & TIMER',
+                              style: GoogleFonts.rajdhani(
+                                color: AppTheme.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            Text(
+                              'Set in-game room ID and player reveal timer',
+                              style: GoogleFonts.inter(
+                                color: AppTheme.textMuted,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Room ID field
+                  TextField(
+                    controller: roomIdCtrl,
+                    style: GoogleFonts.inter(
+                        color: AppTheme.textPrimary, fontSize: 15),
+                    decoration: const InputDecoration(
+                      labelText: 'In-Game Room ID',
+                      hintText: 'Enter room ID',
+                      prefixIcon: Icon(Icons.tag_rounded,
+                          color: AppTheme.primaryLight, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Password field
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: obscurePassword,
+                    style: GoogleFonts.inter(
+                        color: AppTheme.textPrimary, fontSize: 15),
+                    decoration: InputDecoration(
+                      labelText: 'Room Password',
+                      hintText: 'Enter room password',
+                      prefixIcon: const Icon(Icons.lock_rounded,
+                          color: AppTheme.accentGold, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: AppTheme.textMuted,
+                        ),
+                        onPressed: () => setModalState(
+                            () => obscurePassword = !obscurePassword),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Timer section
+                  Text(
+                    'REVEAL TIMER FOR PLAYERS',
+                    style: GoogleFonts.rajdhani(
+                      color: AppTheme.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Choose when players will be able to see the credentials:',
+                    style: GoogleFonts.inter(
+                        color: AppTheme.textSecondary, fontSize: 11),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildTimerChip(
+                        label: 'Immediately',
+                        icon: Icons.flash_on_rounded,
+                        selected: timerMode == 'immediate',
+                        onTap: () =>
+                            setModalState(() => timerMode = 'immediate'),
+                      ),
+                      _buildTimerChip(
+                        label: '15m Before Start',
+                        icon: Icons.timer_outlined,
+                        selected: timerMode == '15min',
+                        onTap: () =>
+                            setModalState(() => timerMode = '15min'),
+                      ),
+                      _buildTimerChip(
+                        label: '30m Before Start',
+                        icon: Icons.timer_outlined,
+                        selected: timerMode == '30min',
+                        onTap: () =>
+                            setModalState(() => timerMode = '30min'),
+                      ),
+                      _buildTimerChip(
+                        label: 'Custom Timer',
+                        icon: Icons.edit_calendar_rounded,
+                        selected: timerMode == 'custom',
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final d = await showDatePicker(
+                            context: ctx,
+                            initialDate: room.startTime,
+                            firstDate: now,
+                            lastDate: now.add(const Duration(days: 30)),
+                          );
+                          if (d == null) return;
+                          final t = await showTimePicker(
+                            context: ctx,
+                            initialTime: TimeOfDay.fromDateTime(
+                              room.startTime
+                                  .subtract(const Duration(minutes: 15)),
+                            ),
+                          );
+                          if (t == null) return;
+                          final picked = DateTime(
+                              d.year, d.month, d.day, t.hour, t.minute);
+                          setModalState(() {
+                            customRevealTime = picked;
+                            timerMode = 'custom';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Save button
+                  ElevatedButton(
+                    onPressed: () async {
+                      final newRoomId = roomIdCtrl.text.trim();
+                      final newPassword = passwordCtrl.text.trim();
+
+                      DateTime? targetReveal;
+                      if (timerMode == '15min') {
+                        targetReveal = room.startTime
+                            .subtract(const Duration(minutes: 15));
+                      } else if (timerMode == '30min') {
+                        targetReveal = room.startTime
+                            .subtract(const Duration(minutes: 30));
+                      } else if (timerMode == 'custom') {
+                        targetReveal = customRevealTime;
+                      }
+
+                      Navigator.pop(ctx);
+
+                      await _service.updateCredentials(
+                        room.id,
+                        roomId: newRoomId,
+                        roomPassword: newPassword,
+                        credentialsVisibleAt: targetReveal,
+                        clearTimer: timerMode == 'immediate',
+                      );
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                                'Room credentials & timer updated successfully!'),
+                            backgroundColor: AppTheme.accentGreen,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      'SAVE CREDENTIALS',
+                      style: GoogleFonts.rajdhani(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTimerChip({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.accent.withValues(alpha: 0.2)
+              : AppTheme.bgSurface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? AppTheme.accent : AppTheme.divider,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? AppTheme.accent : AppTheme.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.rajdhani(
+                color: selected ? Colors.white : AppTheme.textSecondary,
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

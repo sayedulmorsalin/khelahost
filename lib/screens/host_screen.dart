@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:khelahost/core/constants.dart';
@@ -23,12 +24,18 @@ class _HostScreenState extends State<HostScreen> {
   final _prizeCtrl = TextEditingController();
   final _rulesCtrl = TextEditingController();
   final _playerNameCtrl = TextEditingController();
+  final _maxPlayersCtrl = TextEditingController(text: '100');
 
   String _selectedGame = AppConstants.games.first;
   int _maxPlayers = 100;
   DateTime? _startTime;
   bool _loading = false;
   bool _obscurePassword = true;
+
+  // Room ID & password options
+  bool _giveCredentialsLater = false;
+  String _revealTimerMode = 'immediate'; // 'immediate', '15min', '30min', 'custom'
+  DateTime? _customRevealTime;
 
   final _service = RoomService();
 
@@ -40,6 +47,7 @@ class _HostScreenState extends State<HostScreen> {
     _prizeCtrl.dispose();
     _rulesCtrl.dispose();
     _playerNameCtrl.dispose();
+    _maxPlayersCtrl.dispose();
     super.dispose();
   }
 
@@ -84,6 +92,76 @@ class _HostScreenState extends State<HostScreen> {
     });
   }
 
+  Future<void> _pickCustomRevealTime() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _startTime ?? now.add(const Duration(minutes: 30)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 30)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppTheme.accent,
+            surface: AppTheme.bgCard,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+          _startTime?.subtract(const Duration(minutes: 15)) ??
+              now.add(const Duration(minutes: 30))),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppTheme.accent,
+            surface: AppTheme.bgCard,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (time == null || !mounted) return;
+
+    final picked = DateTime(
+      date.year, date.month, date.day, time.hour, time.minute,
+    );
+    if (picked.isBefore(DateTime.now())) {
+      _showError('Reveal time must be in the future.');
+      return;
+    }
+    if (_startTime != null && picked.isAfter(_startTime!)) {
+      _showError('Reveal time cannot be after the game start time.');
+      return;
+    }
+
+    setState(() {
+      _customRevealTime = picked;
+      _revealTimerMode = 'custom';
+    });
+  }
+
+  DateTime? get _calculatedCredentialsRevealTime {
+    if (_revealTimerMode == 'immediate') return null;
+    if (_revealTimerMode == '15min') {
+      if (_startTime == null) return null;
+      return _startTime!.subtract(const Duration(minutes: 15));
+    }
+    if (_revealTimerMode == '30min') {
+      if (_startTime == null) return null;
+      return _startTime!.subtract(const Duration(minutes: 30));
+    }
+    if (_revealTimerMode == 'custom') {
+      return _customRevealTime;
+    }
+    return null;
+  }
+
   Future<void> _createRoom() async {
     if (!_formKey.currentState!.validate()) return;
     if (_startTime == null) {
@@ -98,6 +176,33 @@ class _HostScreenState extends State<HostScreen> {
       _showError('Please enter your display name.');
       return;
     }
+
+    // Validate max players
+    final typedPlayers = int.tryParse(_maxPlayersCtrl.text.trim());
+    if (typedPlayers == null || typedPlayers < 2 || typedPlayers > 100) {
+      _showError('Max players must be a number between 2 and 100.');
+      return;
+    }
+
+    // Validate room credentials if not marked give later
+    if (!_giveCredentialsLater) {
+      if (_roomIdCtrl.text.trim().isEmpty) {
+        _showError('Please enter in-game room ID or check "Give Later".');
+        return;
+      }
+      if (_passwordCtrl.text.trim().isEmpty) {
+        _showError('Please enter room password or check "Give Later".');
+        return;
+      }
+    }
+
+    // Validate reveal timer
+    if (_revealTimerMode == 'custom' && _customRevealTime == null) {
+      _showError('Please pick a custom time for revealing room credentials.');
+      return;
+    }
+
+    final revealTime = _calculatedCredentialsRevealTime;
 
     // Require non-guest account to host
     final user = FirebaseAuth.instance.currentUser;
@@ -119,9 +224,9 @@ class _HostScreenState extends State<HostScreen> {
         id: '',
         name: _nameCtrl.text.trim(),
         game: _selectedGame,
-        roomId: _roomIdCtrl.text.trim(),
-        roomPassword: _passwordCtrl.text.trim(),
-        maxPlayers: _maxPlayers,
+        roomId: _giveCredentialsLater ? '' : _roomIdCtrl.text.trim(),
+        roomPassword: _giveCredentialsLater ? '' : _passwordCtrl.text.trim(),
+        maxPlayers: typedPlayers,
         prizePool: _prizeCtrl.text.trim().isEmpty ? null : _prizeCtrl.text.trim(),
         rules: _rulesCtrl.text.trim().isEmpty ? null : _rulesCtrl.text.trim(),
         startTime: _startTime!,
@@ -129,6 +234,7 @@ class _HostScreenState extends State<HostScreen> {
         hostId: uid,
         players: [hostPlayer],
         status: 'waiting',
+        credentialsVisibleAt: revealTime,
       );
 
       final created = await _service.createRoom(room);
@@ -339,124 +445,7 @@ class _HostScreenState extends State<HostScreen> {
                         ),
 
                         const SizedBox(height: 20),
-                        _SectionLabel('ROOM CREDENTIALS'),
-                        const SizedBox(height: 12),
-
-                        // Room ID
-                        _buildField(
-                          controller: _roomIdCtrl,
-                          label: 'In-Game Room ID',
-                          icon: Icons.tag_rounded,
-                          hint: 'Enter your in-game room ID',
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Enter room ID' : null,
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Password
-                        TextFormField(
-                          controller: _passwordCtrl,
-                          obscureText: _obscurePassword,
-                          style: GoogleFonts.inter(
-                              color: AppTheme.textPrimary, fontSize: 15),
-                          decoration: InputDecoration(
-                            labelText: 'Room Password',
-                            hintText: 'Enter room password',
-                            prefixIcon: const Icon(Icons.lock_rounded,
-                                color: AppTheme.accentGold, size: 20),
-                            suffixIcon: IconButton(
-                              onPressed: () =>
-                                  setState(() => _obscurePassword = !_obscurePassword),
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: AppTheme.textMuted,
-                              ),
-                            ),
-                          ),
-                          validator: (v) => v == null || v.trim().isEmpty
-                              ? 'Enter room password'
-                              : null,
-                        ),
-
-                        const SizedBox(height: 20),
-                        _SectionLabel('TOURNAMENT DETAILS'),
-                        const SizedBox(height: 12),
-
-                        // Max players
-                        Row(
-                          children: [
-                            Text(
-                              'Max Players',
-                              style: GoogleFonts.inter(
-                                  color: AppTheme.textSecondary, fontSize: 14),
-                            ),
-                            const Spacer(),
-                            ...AppConstants.playerCounts.map(
-                              (count) => GestureDetector(
-                                onTap: () =>
-                                    setState(() => _maxPlayers = count),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: _maxPlayers == count
-                                        ? AppTheme.primary
-                                        : AppTheme.bgSurface,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: _maxPlayers == count
-                                          ? AppTheme.primary
-                                          : AppTheme.divider,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '$count',
-                                    style: GoogleFonts.rajdhani(
-                                      color: _maxPlayers == count
-                                          ? Colors.white
-                                          : AppTheme.textSecondary,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Prize Pool
-                        _buildField(
-                          controller: _prizeCtrl,
-                          label: 'Prize Pool (Optional)',
-                          icon: Icons.monetization_on_rounded,
-                          hint: 'e.g. ৳500 or "Custom skins"',
-                          iconColor: AppTheme.accentGold,
-                          required: false,
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Rules
-                        TextFormField(
-                          controller: _rulesCtrl,
-                          maxLines: 4,
-                          style: GoogleFonts.inter(
-                              color: AppTheme.textPrimary, fontSize: 14),
-                          decoration: const InputDecoration(
-                            labelText: 'Rules & Description (Optional)',
-                            hintText:
-                                'Enter tournament rules, mode, map info...',
-                            alignLabelWithHint: true,
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-                        _SectionLabel('START TIME'),
+                        _SectionLabel('MATCH START TIME'),
                         const SizedBox(height: 12),
 
                         // Start time picker
@@ -512,13 +501,405 @@ class _HostScreenState extends State<HostScreen> {
                                     ],
                                   ),
                                 ),
-                                Icon(
+                                const Icon(
                                   Icons.edit_calendar_rounded,
                                   color: AppTheme.textMuted,
                                   size: 18,
                                 ),
                               ],
                             ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        _SectionLabel('ROOM CREDENTIALS & TIMER'),
+                        const SizedBox(height: 12),
+
+                        // Give Later Toggle
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _giveCredentialsLater
+                                ? AppTheme.accent.withValues(alpha: 0.1)
+                                : AppTheme.bgSurface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _giveCredentialsLater
+                                  ? AppTheme.accent
+                                  : AppTheme.divider,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: _giveCredentialsLater
+                                      ? AppTheme.accent.withValues(alpha: 0.2)
+                                      : AppTheme.bgCard,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.schedule_send_rounded,
+                                  color: _giveCredentialsLater
+                                      ? AppTheme.accent
+                                      : AppTheme.textMuted,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Give Room ID & Password Later',
+                                      style: GoogleFonts.rajdhani(
+                                        color: AppTheme.textPrimary,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Provide in-game credentials closer to match time',
+                                      style: GoogleFonts.inter(
+                                        color: AppTheme.textMuted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch.adaptive(
+                                value: _giveCredentialsLater,
+                                activeColor: AppTheme.accent,
+                                onChanged: (val) {
+                                  setState(() => _giveCredentialsLater = val);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        if (_giveCredentialsLater) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.accent.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: AppTheme.accent.withValues(alpha: 0.25)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.info_outline_rounded,
+                                    color: AppTheme.accent, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Room ID and Password will show as "Pending" for participants. You can set them anytime before the match from the room screen.',
+                                    style: GoogleFonts.inter(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 12,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 12),
+                          // Room ID
+                          _buildField(
+                            controller: _roomIdCtrl,
+                            label: 'In-Game Room ID',
+                            icon: Icons.tag_rounded,
+                            hint: 'Enter your in-game room ID',
+                            validator: (v) {
+                              if (_giveCredentialsLater) return null;
+                              return v == null || v.trim().isEmpty
+                                  ? 'Enter room ID or check "Give Later"'
+                                  : null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Password
+                          TextFormField(
+                            controller: _passwordCtrl,
+                            obscureText: _obscurePassword,
+                            style: GoogleFonts.inter(
+                                color: AppTheme.textPrimary, fontSize: 15),
+                            decoration: InputDecoration(
+                              labelText: 'Room Password',
+                              hintText: 'Enter room password',
+                              prefixIcon: const Icon(Icons.lock_rounded,
+                                  color: AppTheme.accentGold, size: 20),
+                              suffixIcon: IconButton(
+                                onPressed: () => setState(() =>
+                                    _obscurePassword = !_obscurePassword),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                            validator: (v) {
+                              if (_giveCredentialsLater) return null;
+                              return v == null || v.trim().isEmpty
+                                  ? 'Enter room password or check "Give Later"'
+                                  : null;
+                            },
+                          ),
+                        ],
+
+                        const SizedBox(height: 16),
+                        // Timer for revealing Room ID & Password
+                        Text(
+                          'SHOW ROOM ID & PASSWORD (TIMER)',
+                          style: GoogleFonts.rajdhani(
+                            color: AppTheme.textMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Choose when registered players can view the credentials:',
+                          style: GoogleFonts.inter(
+                              color: AppTheme.textSecondary, fontSize: 12),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Timer Options
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildTimerChip(
+                              label: 'Immediately',
+                              icon: Icons.flash_on_rounded,
+                              selected: _revealTimerMode == 'immediate',
+                              onTap: () => setState(() => _revealTimerMode = 'immediate'),
+                            ),
+                            _buildTimerChip(
+                              label: '15m Before Start',
+                              icon: Icons.timer_outlined,
+                              selected: _revealTimerMode == '15min',
+                              onTap: () {
+                                if (_startTime == null) {
+                                  _showError('Please set game start time above first.');
+                                  return;
+                                }
+                                setState(() => _revealTimerMode = '15min');
+                              },
+                            ),
+                            _buildTimerChip(
+                              label: '30m Before Start',
+                              icon: Icons.timer_outlined,
+                              selected: _revealTimerMode == '30min',
+                              onTap: () {
+                                if (_startTime == null) {
+                                  _showError('Please set game start time above first.');
+                                  return;
+                                }
+                                setState(() => _revealTimerMode = '30min');
+                              },
+                            ),
+                            _buildTimerChip(
+                              label: 'Custom Timer',
+                              icon: Icons.edit_calendar_rounded,
+                              selected: _revealTimerMode == 'custom',
+                              onTap: _pickCustomRevealTime,
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Timer status description card
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.bgSurface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _revealTimerMode == 'immediate'
+                                  ? AppTheme.accentGreen.withValues(alpha: 0.3)
+                                  : AppTheme.accentGold.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _revealTimerMode == 'immediate'
+                                    ? Icons.visibility_rounded
+                                    : Icons.lock_clock_rounded,
+                                color: _revealTimerMode == 'immediate'
+                                    ? AppTheme.accentGreen
+                                    : AppTheme.accentGold,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _getTimerExplanation(),
+                                  style: GoogleFonts.inter(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 12,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                              if (_revealTimerMode == 'custom')
+                                GestureDetector(
+                                  onTap: _pickCustomRevealTime,
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(left: 6),
+                                    child: Icon(Icons.edit_rounded,
+                                        color: AppTheme.accent, size: 16),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        _SectionLabel('TOURNAMENT DETAILS'),
+                        const SizedBox(height: 12),
+
+                        // Max players typed input
+                        TextFormField(
+                          controller: _maxPlayersCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
+                          style: GoogleFonts.inter(
+                              color: AppTheme.textPrimary, fontSize: 15),
+                          decoration: InputDecoration(
+                            labelText: 'Max Players (Type number under 100)',
+                            hintText: 'e.g. 100, 50, 32, 16',
+                            prefixIcon: const Icon(Icons.people_rounded,
+                                color: AppTheme.accent, size: 20),
+                            helperText:
+                                'Custom player limit: minimum 2, maximum 100',
+                            helperStyle: GoogleFonts.inter(
+                                color: AppTheme.textMuted, fontSize: 11),
+                            suffixText: 'players',
+                            suffixStyle: GoogleFonts.rajdhani(
+                              color: AppTheme.textMuted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          onChanged: (val) {
+                            final count = int.tryParse(val.trim());
+                            if (count != null) {
+                              setState(() => _maxPlayers = count);
+                            }
+                          },
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Enter max players';
+                            }
+                            final val = int.tryParse(v.trim());
+                            if (val == null) return 'Enter a valid number';
+                            if (val < 2) return 'Minimum 2 players required';
+                            if (val > 100) {
+                              return 'Max players cannot exceed 100';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Quick Select Chips
+                        Row(
+                          children: [
+                            Text(
+                              'Quick Select:',
+                              style: GoogleFonts.inter(
+                                  color: AppTheme.textMuted, fontSize: 12),
+                            ),
+                            const Spacer(),
+                            ...AppConstants.playerCounts.map(
+                              (count) {
+                                final isSelected = _maxPlayers == count &&
+                                    _maxPlayersCtrl.text == '$count';
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _maxPlayers = count;
+                                      _maxPlayersCtrl.text = '$count';
+                                    });
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    margin: const EdgeInsets.only(left: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppTheme.primary
+                                          : AppTheme.bgSurface,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? AppTheme.primary
+                                            : AppTheme.divider,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '$count',
+                                      style: GoogleFonts.rajdhani(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppTheme.textSecondary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Prize Pool
+                        _buildField(
+                          controller: _prizeCtrl,
+                          label: 'Prize Pool (Optional)',
+                          icon: Icons.monetization_on_rounded,
+                          hint: 'e.g. ৳500 or "Custom skins"',
+                          iconColor: AppTheme.accentGold,
+                          required: false,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Rules
+                        TextFormField(
+                          controller: _rulesCtrl,
+                          maxLines: 4,
+                          style: GoogleFonts.inter(
+                              color: AppTheme.textPrimary, fontSize: 14),
+                          decoration: const InputDecoration(
+                            labelText: 'Rules & Description (Optional)',
+                            hintText:
+                                'Enter tournament rules, mode, map info...',
+                            alignLabelWithHint: true,
                           ),
                         ),
 
@@ -613,6 +994,77 @@ class _HostScreenState extends State<HostScreen> {
           ? (validator ??
               (v) => v == null || v.trim().isEmpty ? 'Required' : null)
           : null,
+    );
+  }
+
+  String _getTimerExplanation() {
+    if (_revealTimerMode == 'immediate') {
+      return 'Room credentials will be visible to registered players as soon as they are saved.';
+    }
+    if (_revealTimerMode == '15min') {
+      if (_startTime == null) {
+        return 'Will reveal 15 min before match start. (Set start time above)';
+      }
+      final t = _startTime!.subtract(const Duration(minutes: 15));
+      return 'Hidden until 15m before match: ${DateFormat('hh:mm a, MMM dd').format(t)}';
+    }
+    if (_revealTimerMode == '30min') {
+      if (_startTime == null) {
+        return 'Will reveal 30 min before match start. (Set start time above)';
+      }
+      final t = _startTime!.subtract(const Duration(minutes: 30));
+      return 'Hidden until 30m before match: ${DateFormat('hh:mm a, MMM dd').format(t)}';
+    }
+    if (_revealTimerMode == 'custom') {
+      if (_customRevealTime == null) {
+        return 'Tap "Custom Timer" to pick exact release date & time.';
+      }
+      return 'Hidden until custom time: ${DateFormat('hh:mm a, MMM dd').format(_customRevealTime!)}';
+    }
+    return '';
+  }
+
+  Widget _buildTimerChip({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.accent.withValues(alpha: 0.2)
+              : AppTheme.bgSurface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? AppTheme.accent : AppTheme.divider,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? AppTheme.accent : AppTheme.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.rajdhani(
+                color: selected ? Colors.white : AppTheme.textSecondary,
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

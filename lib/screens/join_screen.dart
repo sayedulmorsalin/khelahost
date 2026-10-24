@@ -465,17 +465,36 @@ class _TournamentCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          'GET ID & PASS',
+                          !room.hasCredentials
+                              ? 'JOIN ROOM'
+                              : (room.credentialsVisibleAt != null &&
+                                      room.credentialsVisibleAt!
+                                          .isAfter(DateTime.now())
+                                  ? 'ID LOCKED'
+                                  : 'GET ID & PASS'),
                           style: GoogleFonts.rajdhani(
-                            color: AppTheme.accent,
+                            color: !room.hasCredentials ||
+                                    (room.credentialsVisibleAt != null &&
+                                        room.credentialsVisibleAt!
+                                            .isAfter(DateTime.now()))
+                                ? AppTheme.accentGold
+                                : AppTheme.accent,
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
                             letterSpacing: 1,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_ios_rounded,
-                            color: AppTheme.accent, size: 12),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: !room.hasCredentials ||
+                                  (room.credentialsVisibleAt != null &&
+                                      room.credentialsVisibleAt!
+                                          .isAfter(DateTime.now()))
+                              ? AppTheme.accentGold
+                              : AppTheme.accent,
+                          size: 12,
+                        ),
                       ],
                     ),
                   ],

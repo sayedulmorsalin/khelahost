@@ -490,6 +490,28 @@ class _HostRoomCard extends StatelessWidget {
                           '${room.players.length}/${room.maxPlayers} players',
                       color: AppTheme.accent,
                     ),
+                    const SizedBox(width: 8),
+                    // Credentials badge
+                    if (!room.hasCredentials)
+                      const _SmallBadge(
+                        icon: Icons.key_off_rounded,
+                        label: 'ID/Pass Pending',
+                        color: AppTheme.accentGold,
+                      )
+                    else if (room.credentialsVisibleAt != null &&
+                        room.credentialsVisibleAt!.isAfter(DateTime.now()))
+                      _SmallBadge(
+                        icon: Icons.timer_outlined,
+                        label:
+                            'Reveals ${DateFormat('hh:mm a').format(room.credentialsVisibleAt!)}',
+                        color: AppTheme.accentGold,
+                      )
+                    else
+                      const _SmallBadge(
+                        icon: Icons.key_rounded,
+                        label: 'ID/Pass Ready',
+                        color: AppTheme.accentGreen,
+                      ),
                     if (room.prizePool?.isNotEmpty == true) ...[
                       const SizedBox(width: 8),
                       _SmallBadge(
