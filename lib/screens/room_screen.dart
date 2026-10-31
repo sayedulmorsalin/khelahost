@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:khelahost/core/constants.dart';
 import 'package:khelahost/core/theme.dart';
 import 'package:khelahost/models/tournament_room.dart';
@@ -8,7 +9,6 @@ import 'package:khelahost/services/room_service.dart';
 import 'package:khelahost/widgets/countdown_widget.dart';
 import 'package:khelahost/widgets/player_list_tile.dart';
 import 'package:khelahost/widgets/room_info_card.dart';
-import 'package:intl/intl.dart';
 
 class RoomScreen extends StatefulWidget {
   final String docId;
@@ -30,7 +30,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
     super.initState();
     _headerController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 500),
     )..forward();
     _headerAnim = CurvedAnimation(
         parent: _headerController, curve: Curves.easeOutCubic);
@@ -47,26 +47,44 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.bgCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppTheme.cardBorder),
+        ),
         title: Text(
           'Close Tournament?',
-          style: GoogleFonts.rajdhani(
-              color: AppTheme.textPrimary, fontWeight: FontWeight.w700),
+          style: GoogleFonts.plusJakartaSans(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
         ),
         content: Text(
-          'This will close the room for all participants.',
-          style: GoogleFonts.inter(color: AppTheme.textSecondary),
+          'This will permanently close the room for all registered players.',
+          style: GoogleFonts.inter(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.textMuted)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.plusJakartaSans(color: AppTheme.textMuted),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Close Room',
-                style: TextStyle(color: AppTheme.accentRed)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accentRed,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              'Close Room',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -82,10 +100,12 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${player.name} removed.'),
+          content: Text('${player.name} removed from room.'),
           backgroundColor: AppTheme.accentRed,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
         ),
       );
     }
@@ -94,19 +114,22 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.bgDeep,
       body: StreamBuilder<TournamentRoom?>(
         stream: _service.streamRoom(widget.docId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
+              child: CircularProgressIndicator(
+                color: AppTheme.primary,
+                strokeWidth: 2.5,
+              ),
             );
           }
           if (!snapshot.hasData || snapshot.data == null) {
             return _buildClosed();
           }
           final room = snapshot.data!;
-          // Derive host status dynamically so returning hosts are recognized
           final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
           final isHost = room.hostId == uid || widget.isHost;
           if (room.status == 'closed' && !isHost) {
@@ -121,104 +144,87 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   Widget _buildRoom(TournamentRoom room, bool isHost) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-    return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            FadeTransition(
-              opacity: _headerAnim,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, -0.2),
-                  end: Offset.zero,
-                ).animate(_headerAnim),
-                child: _buildHeader(room),
-              ),
-            ),
+    return SafeArea(
+      child: Column(
+        children: [
+          // Header Bar
+          FadeTransition(
+            opacity: _headerAnim,
+            child: _buildHeader(room, isHost),
+          ),
 
-            // Body
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          // Body
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+
+                  // Countdown
+                  CountdownWidget(targetTime: room.startTime, room: room),
+                  const SizedBox(height: 16),
+
+                  // Room credentials pass
+                  RoomInfoCard(
+                    room: room,
+                    isHost: isHost,
+                    onEditCredentials:
+                        isHost ? () => _showEditCredentialsSheet(room) : null,
+                    onRevealNow:
+                        isHost ? () => _revealCredentialsNow(room) : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Tournament info metrics grid
+                  _buildInfoGrid(room),
+                  const SizedBox(height: 16),
+
+                  // Prize pool card
+                  if (room.prizePool != null && room.prizePool!.isNotEmpty) ...[
+                    _buildPrizeCard(room),
                     const SizedBox(height: 16),
-
-                    // Countdown
-                    CountdownWidget(targetTime: room.startTime, room: room),
-                    const SizedBox(height: 16),
-
-                    // Room credentials card
-                    RoomInfoCard(
-                      room: room,
-                      isHost: isHost,
-                      onEditCredentials:
-                          isHost ? () => _showEditCredentialsSheet(room) : null,
-                      onRevealNow:
-                          isHost ? () => _revealCredentialsNow(room) : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Tournament info grid
-                    _buildInfoGrid(room),
-                    const SizedBox(height: 16),
-
-                    // Prize pool
-                    if (room.prizePool != null && room.prizePool!.isNotEmpty)
-                      _buildPrizeCard(room),
-
-                    // Rules
-                    if (room.rules != null && room.rules!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      _buildRulesCard(room),
-                    ],
-
-                    const SizedBox(height: 16),
-
-                    // Player list
-                    _buildPlayerList(room, uid, isHost),
-
-                    const SizedBox(height: 16),
-
-                    // Participant Join / Status controls (for non-hosts)
-                    if (!isHost) ...[
-                      _buildParticipantControls(room, uid),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Host controls
-                    if (isHost) ...[
-                      _buildHostControls(room),
-                      const SizedBox(height: 16),
-                    ],
-
-                    const SizedBox(height: 32),
                   ],
-                ),
+
+                  // Rules card
+                  if (room.rules != null && room.rules!.isNotEmpty) ...[
+                    _buildRulesCard(room),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Player list section
+                  _buildPlayerList(room, uid, isHost),
+                  const SizedBox(height: 16),
+
+                  // Participant Join / Status controls (for non-hosts)
+                  if (!isHost) ...[
+                    _buildParticipantControls(room, uid),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Host controls
+                  if (isHost) ...[
+                    _buildHostControls(room),
+                    const SizedBox(height: 16),
+                  ],
+
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader(TournamentRoom room) {
-    final gameIcon = AppConstants.gameIcons[room.game] ?? '🎮';
+  Widget _buildHeader(TournamentRoom room, bool isHost) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primary.withValues(alpha: 0.2),
-            Colors.transparent,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: AppTheme.bgCard,
         border: Border(
           bottom: BorderSide(color: AppTheme.divider, width: 1),
         ),
@@ -228,50 +234,77 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
-                color: AppTheme.bgCard,
+                color: AppTheme.bgSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.divider),
+                border: Border.all(color: AppTheme.cardBorder),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: AppTheme.textPrimary, size: 16),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: AppTheme.textPrimary,
+                size: 16,
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          Text(gameIcon, style: const TextStyle(fontSize: 28)),
-          const SizedBox(width: 10),
+          GameIconWidget(game: room.game, size: 36, borderRadius: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  room.name,
-                  style: GoogleFonts.rajdhani(
-                    color: AppTheme.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        room.name,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isHost) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accentGold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'YOU ARE HOST',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.accentGold,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   room.game,
                   style: GoogleFonts.inter(
-                      color: AppTheme.textMuted, fontSize: 12),
+                    color: AppTheme.textMuted,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
           ),
           // Status badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: _statusColor(room.status).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: _statusColor(room.status).withValues(alpha: 0.4),
-              ),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -286,12 +319,14 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  room.status.toUpperCase(),
-                  style: TextStyle(
+                  room.status == 'started'
+                      ? 'LIVE'
+                      : (room.status == 'waiting' ? 'SCHEDULED' : 'CLOSED'),
+                  style: GoogleFonts.plusJakartaSans(
                     color: _statusColor(room.status),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
@@ -309,22 +344,22 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
       child: Row(
         children: [
           _InfoCell(
-            icon: Icons.people_rounded,
-            label: 'Players',
-            value: '${room.players.length}/${room.maxPlayers}',
-            color: AppTheme.accent,
-          ),
-          _Divider(),
-          _InfoCell(
-            icon: Icons.calendar_today_rounded,
-            label: 'Start Date',
-            value: DateFormat('MMM dd').format(room.startTime),
+            icon: Icons.people_alt_outlined,
+            label: 'Capacity',
+            value: '${room.players.length} / ${room.maxPlayers}',
             color: AppTheme.primaryLight,
           ),
           _Divider(),
           _InfoCell(
+            icon: Icons.calendar_today_rounded,
+            label: 'Match Date',
+            value: DateFormat('MMM dd').format(room.startTime),
+            color: AppTheme.accent,
+          ),
+          _Divider(),
+          _InfoCell(
             icon: Icons.access_time_rounded,
-            label: 'Start Time',
+            label: 'Kickoff',
             value: DateFormat('hh:mm a').format(room.startTime),
             color: AppTheme.accentGreen,
           ),
@@ -336,7 +371,9 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   Widget _buildPrizeCard(TournamentRoom room) {
     return Container(
       decoration: AppTheme.glassCard(
-          borderColor: AppTheme.accentGold, borderRadius: 16),
+        borderColor: AppTheme.accentGold,
+        borderRadius: 16,
+      ),
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -346,7 +383,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
               color: AppTheme.accentGold.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.monetization_on_rounded,
+            child: const Icon(Icons.emoji_events_rounded,
                 color: AppTheme.accentGold, size: 24),
           ),
           const SizedBox(width: 14),
@@ -354,18 +391,20 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'PRIZE POOL',
-                style: TextStyle(
+                'TOURNAMENT PRIZE POOL',
+                style: GoogleFonts.plusJakartaSans(
                   color: AppTheme.textMuted,
-                  fontSize: 11,
-                  letterSpacing: 1.5,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 room.prizePool!,
-                style: GoogleFonts.rajdhani(
+                style: GoogleFonts.plusJakartaSans(
                   color: AppTheme.accentGold,
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -379,33 +418,33 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   Widget _buildRulesCard(TournamentRoom room) {
     return Container(
       decoration: AppTheme.glassCard(borderRadius: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.rule_rounded,
-                  color: AppTheme.primary, size: 18),
+              const Icon(Icons.gavel_rounded,
+                  color: AppTheme.primaryLight, size: 16),
               const SizedBox(width: 8),
               Text(
-                'RULES & INFO',
-                style: TextStyle(
-                  color: AppTheme.primary,
+                'RULES & MATCH GUIDELINES',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
+                  letterSpacing: 0.8,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             room.rules!,
             style: GoogleFonts.inter(
               color: AppTheme.textSecondary,
               fontSize: 13,
-              height: 1.7,
+              height: 1.6,
             ),
           ),
         ],
@@ -418,31 +457,36 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Icon(Icons.people_rounded, color: AppTheme.accent, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'PLAYERS  ',
-              style: TextStyle(
-                color: AppTheme.accent,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-              ),
+            Row(
+              children: [
+                const Icon(Icons.groups_rounded,
+                    color: AppTheme.primaryLight, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'ROSTER',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                color: AppTheme.bgSurface,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '${room.players.length}',
-                style: TextStyle(
-                  color: AppTheme.accent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                '${room.players.length} / ${room.maxPlayers} slots',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -453,14 +497,14 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
-            decoration: AppTheme.glassCard(borderRadius: 12),
+            decoration: AppTheme.glassCard(borderRadius: 14),
             child: Column(
               children: [
                 const Icon(Icons.person_add_rounded,
-                    color: AppTheme.textMuted, size: 32),
+                    color: AppTheme.textMuted, size: 30),
                 const SizedBox(height: 8),
                 Text(
-                  'No players yet\nShare the room to invite people!',
+                  'No players joined yet.\nShare room to invite friends!',
                   style: GoogleFonts.inter(
                       color: AppTheme.textMuted, fontSize: 13),
                   textAlign: TextAlign.center,
@@ -474,6 +518,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                   player: e.value,
                   index: e.key,
                   isHost: isHost,
+                  isPlayerTheHost: e.value.uid == room.hostId,
                   onRemove: isHost && e.value.uid != uid
                       ? () => _removePlayer(room, e.value)
                       : null,
@@ -492,33 +537,32 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
           child: OutlinedButton.icon(
             onPressed: () => _showEditCredentialsSheet(room),
             icon: Icon(
-              room.hasCredentials ? Icons.edit_rounded : Icons.key_rounded,
-              size: 18,
+              room.hasCredentials ? Icons.edit_rounded : Icons.vpn_key_rounded,
+              size: 16,
             ),
             label: Text(
               room.hasCredentials
-                  ? 'EDIT ROOM ID & PASSWORD'
-                  : 'SET IN-GAME ROOM ID & PASSWORD',
+                  ? 'Edit Room ID & Password'
+                  : 'Set Room ID & Password',
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.accentGold,
-              side: const BorderSide(color: AppTheme.accentGold),
+              side: const BorderSide(color: AppTheme.accentGold, width: 1.2),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
-              textStyle: const TextStyle(
+              textStyle: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
-                letterSpacing: 1,
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
+              child: ElevatedButton.icon(
                 onPressed: () => _service.updateStatus(
                   room.id,
                   room.status == 'started' ? 'waiting' : 'started',
@@ -527,39 +571,38 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                   room.status == 'started'
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
+                  size: 18,
                 ),
-                label: Text(
-                    room.status == 'started' ? 'PAUSE GAME' : 'START GAME'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.accentGreen,
-                  side: const BorderSide(color: AppTheme.accentGreen),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                label: Text(room.status == 'started'
+                    ? 'Pause Match'
+                    : 'Start Match'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(
+                  textStyle: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    letterSpacing: 1,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => _closeRoom(room),
-                icon: const Icon(Icons.close_rounded),
-                label: const Text('CLOSE ROOM'),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Close Room'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.accentRed,
-                  side: const BorderSide(color: AppTheme.accentRed),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: AppTheme.accentRed, width: 1.2),
+                  minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(
+                  textStyle: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    letterSpacing: 1,
                   ),
                 ),
               ),
@@ -575,28 +618,42 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.bgCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppTheme.cardBorder),
+        ),
         title: Text(
           'Reveal Credentials Now?',
-          style: GoogleFonts.rajdhani(
-              color: AppTheme.textPrimary, fontWeight: FontWeight.w700),
+          style: GoogleFonts.plusJakartaSans(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
         ),
         content: Text(
-          'This will immediately reveal the Room ID and Password to all registered participants.',
-          style: GoogleFonts.inter(color: AppTheme.textSecondary),
+          'This will immediately unlock the Room ID and Password for all participants.',
+          style: GoogleFonts.inter(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.textMuted)),
+            child: Text('Cancel',
+                style: GoogleFonts.plusJakartaSans(color: AppTheme.textMuted)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.accentGreen,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Reveal Now'),
+            child: Text(
+              'Reveal Now',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -606,11 +663,20 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Credentials revealed to all players!'),
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Text('Credentials revealed to all players!',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+              ],
+            ),
             backgroundColor: AppTheme.accentGreen,
             behavior: SnackBarBehavior.floating,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -649,7 +715,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
               color: AppTheme.bgCard,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               border: Border(
-                top: BorderSide(color: AppTheme.accent, width: 1.5),
+                top: BorderSide(color: AppTheme.cardBorder, width: 1.5),
               ),
             ),
             padding: EdgeInsets.fromLTRB(
@@ -663,7 +729,6 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Handle bar
                   Center(
                     child: Container(
                       width: 40,
@@ -678,27 +743,33 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
 
                   Row(
                     children: [
-                      const Icon(Icons.vpn_key_rounded,
-                          color: AppTheme.accent, size: 24),
-                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.vpn_key_rounded,
+                            color: AppTheme.primaryLight, size: 20),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'ROOM CREDENTIALS & TIMER',
-                              style: GoogleFonts.rajdhani(
+                              'Room Credentials & Timer',
+                              style: GoogleFonts.plusJakartaSans(
                                 color: AppTheme.textPrimary,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                             Text(
-                              'Set in-game room ID and player reveal timer',
+                              'Update in-game room credentials & automated reveal',
                               style: GoogleFonts.inter(
                                 color: AppTheme.textMuted,
-                                fontSize: 11,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -712,7 +783,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                   TextField(
                     controller: roomIdCtrl,
                     style: GoogleFonts.inter(
-                        color: AppTheme.textPrimary, fontSize: 15),
+                        color: AppTheme.textPrimary, fontSize: 14),
                     decoration: const InputDecoration(
                       labelText: 'In-Game Room ID',
                       hintText: 'Enter room ID',
@@ -727,11 +798,11 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                     controller: passwordCtrl,
                     obscureText: obscurePassword,
                     style: GoogleFonts.inter(
-                        color: AppTheme.textPrimary, fontSize: 15),
+                        color: AppTheme.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
                       labelText: 'Room Password',
                       hintText: 'Enter room password',
-                      prefixIcon: const Icon(Icons.lock_rounded,
+                      prefixIcon: const Icon(Icons.lock_outline_rounded,
                           color: AppTheme.accentGold, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -739,6 +810,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                           color: AppTheme.textMuted,
+                          size: 18,
                         ),
                         onPressed: () => setModalState(
                             () => obscurePassword = !obscurePassword),
@@ -748,23 +820,16 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
 
                   const SizedBox(height: 18),
 
-                  // Timer section
                   Text(
-                    'REVEAL TIMER FOR PLAYERS',
-                    style: GoogleFonts.rajdhani(
+                    'WHEN CAN PLAYERS VIEW THESE CREDENTIALS?',
+                    style: GoogleFonts.plusJakartaSans(
                       color: AppTheme.textMuted,
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+                      letterSpacing: 0.8,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Choose when players will be able to see the credentials:',
-                    style: GoogleFonts.inter(
-                        color: AppTheme.textSecondary, fontSize: 11),
-                  ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   Wrap(
                     spacing: 8,
@@ -804,6 +869,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                             lastDate: now.add(const Duration(days: 30)),
                           );
                           if (d == null) return;
+                          if (!ctx.mounted) return;
                           final t = await showTimePicker(
                             context: ctx,
                             initialTime: TimeOfDay.fromDateTime(
@@ -823,7 +889,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 22),
 
                   // Save button
                   ElevatedButton(
@@ -855,28 +921,37 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text(
-                                'Room credentials & timer updated successfully!'),
+                            content: Row(
+                              children: [
+                                const Icon(Icons.check_circle_rounded,
+                                    color: Colors.white, size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                    'Room credentials & reveal timer saved!',
+                                    style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w500)),
+                              ],
+                            ),
                             backgroundColor: AppTheme.accentGreen,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
+                                borderRadius: BorderRadius.circular(12)),
+                            margin: const EdgeInsets.all(16),
                           ),
                         );
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accent,
+                      backgroundColor: AppTheme.primary,
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
-                      'SAVE CREDENTIALS',
-                      style: GoogleFonts.rajdhani(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                        letterSpacing: 1.5,
+                      'Save Credentials',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
                       ),
                     ),
                   ),
@@ -902,12 +977,12 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppTheme.accent.withValues(alpha: 0.2)
+              ? AppTheme.primary.withValues(alpha: 0.15)
               : AppTheme.bgSurface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? AppTheme.accent : AppTheme.divider,
-            width: selected ? 1.5 : 1,
+            color: selected ? AppTheme.primary : AppTheme.cardBorder,
+            width: selected ? 1.4 : 1,
           ),
         ),
         child: Row(
@@ -916,14 +991,14 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
             Icon(
               icon,
               size: 14,
-              color: selected ? AppTheme.accent : AppTheme.textMuted,
+              color: selected ? AppTheme.primaryLight : AppTheme.textMuted,
             ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: GoogleFonts.rajdhani(
+              style: GoogleFonts.plusJakartaSans(
                 color: selected ? Colors.white : AppTheme.textSecondary,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
@@ -934,53 +1009,49 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildClosed() {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-      child: Center(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.accentRed.withValues(alpha: 0.15),
+                color: AppTheme.accentRed.withValues(alpha: 0.12),
               ),
               child: const Icon(Icons.meeting_room_outlined,
-                  color: AppTheme.accentRed, size: 48),
+                  color: AppTheme.accentRed, size: 44),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             Text(
               'Room Closed',
-              style: GoogleFonts.rajdhani(
+              style: GoogleFonts.plusJakartaSans(
                 color: AppTheme.textPrimary,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
-              'This tournament room no longer exists\nor has been closed by the host.',
+              'This tournament room has concluded\nor was closed by the host.',
               style: GoogleFonts.inter(
                 color: AppTheme.textSecondary,
-                fontSize: 14,
-                height: 1.6,
+                fontSize: 13,
+                height: 1.5,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
-            OutlinedButton(
+            const SizedBox(height: 24),
+            ElevatedButton(
               onPressed: () =>
                   Navigator.of(context).popUntil((r) => r.isFirst),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.accent,
-                side: const BorderSide(color: AppTheme.accent),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                minimumSize: const Size(160, 44),
               ),
-              child: const Text('GO HOME'),
+              child: const Text('Back to Home'),
             ),
           ],
         ),
@@ -1017,16 +1088,16 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'YOU ARE REGISTERED!',
-                    style: GoogleFonts.rajdhani(
+                    'YOU ARE REGISTERED',
+                    style: GoogleFonts.plusJakartaSans(
                       color: AppTheme.accentGreen,
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   Text(
-                    'Slot registered as "${player.name}"',
+                    'Slot confirmed as "${player.name}"',
                     style: GoogleFonts.inter(
                         color: AppTheme.textSecondary, fontSize: 12),
                   ),
@@ -1035,9 +1106,13 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
             ),
             TextButton(
               onPressed: () => _removePlayer(room, player),
-              child: const Text(
+              child: Text(
                 'Leave Slot',
-                style: TextStyle(color: AppTheme.accentRed, fontSize: 12),
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.accentRed,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -1047,15 +1122,16 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
 
     return ElevatedButton.icon(
       onPressed: isFull ? null : () => _showJoinDialog(room),
-      icon: Icon(isFull ? Icons.block_rounded : Icons.how_to_reg_rounded),
-      label: Text(isFull ? 'SLOTS FULL' : 'REGISTER MY SLOT IN TOURNAMENT'),
+      icon: Icon(isFull ? Icons.block_rounded : Icons.how_to_reg_rounded,
+          size: 18),
+      label: Text(isFull ? 'Slots Full' : 'Register for Tournament'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isFull ? AppTheme.bgSurface : AppTheme.accent,
+        backgroundColor: isFull ? AppTheme.bgSurface : AppTheme.primary,
         foregroundColor: isFull ? AppTheme.textMuted : Colors.white,
-        minimumSize: const Size(double.infinity, 54),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: GoogleFonts.rajdhani(
-            fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1.5),
+        minimumSize: const Size(double.infinity, 52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 15, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -1066,13 +1142,16 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.bgCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppTheme.cardBorder),
+        ),
         title: Text(
-          'Register for ${room.name}',
-          style: GoogleFonts.rajdhani(
+          'Join ${room.name}',
+          style: GoogleFonts.plusJakartaSans(
             color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
           ),
         ),
         content: Column(
@@ -1080,18 +1159,20 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Enter your in-game display name to join the player list:',
+              'Enter your in-game nickname or gamer tag:',
               style: GoogleFonts.inter(
                   color: AppTheme.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: nameCtrl,
-              style: GoogleFonts.inter(color: AppTheme.textPrimary),
+              style: GoogleFonts.inter(
+                  color: AppTheme.textPrimary, fontSize: 14),
               decoration: const InputDecoration(
                 labelText: 'Gamer Tag / Display Name',
                 hintText: 'e.g. ProGamer99',
-                prefixIcon: Icon(Icons.person_rounded, color: AppTheme.accent),
+                prefixIcon: Icon(Icons.sports_esports_rounded,
+                    color: AppTheme.primaryLight, size: 20),
               ),
             ),
           ],
@@ -1099,8 +1180,10 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.textMuted)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.plusJakartaSans(color: AppTheme.textMuted),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1108,7 +1191,6 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
               if (name.isEmpty) return;
               Navigator.pop(ctx);
 
-              // User is always authenticated via AuthGate
               final uid = FirebaseAuth.instance.currentUser?.uid;
               if (uid == null) return;
 
@@ -1122,20 +1204,35 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Registered as "$name"!'),
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle_rounded,
+                            color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Registered as "$name"!',
+                            style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w500)),
+                      ],
+                    ),
                     backgroundColor: AppTheme.accentGreen,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              minimumSize: const Size(100, 44),
+              backgroundColor: AppTheme.primary,
+              minimumSize: const Size(110, 42),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Register'),
+            child: Text(
+              'Register',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -1149,7 +1246,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
       case 'closed':
         return AppTheme.accentRed;
       default:
-        return AppTheme.accent;
+        return AppTheme.primaryLight;
     }
   }
 }
@@ -1176,15 +1273,19 @@ class _InfoCell extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.textPrimary,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 10),
+            style: GoogleFonts.inter(
+              color: AppTheme.textMuted,
+              fontSize: 10,
+            ),
           ),
         ],
       ),
@@ -1196,7 +1297,7 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: 1,
-        height: 40,
+        height: 36,
         color: AppTheme.divider,
       );
 }

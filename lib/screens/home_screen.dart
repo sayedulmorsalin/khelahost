@@ -1,11 +1,15 @@
-import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:khelahost/core/constants.dart';
 import 'package:khelahost/core/theme.dart';
+import 'package:khelahost/models/tournament_room.dart';
 import 'package:khelahost/screens/host_screen.dart';
 import 'package:khelahost/screens/join_screen.dart';
 import 'package:khelahost/screens/my_tournaments_screen.dart';
+import 'package:khelahost/screens/room_screen.dart';
+import 'package:khelahost/services/room_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,322 +18,20 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _bgController;
-  late AnimationController _floatController;
-  late Animation<double> _floatAnimation;
-  late List<_Particle> _particles;
+class _HomeScreenState extends State<HomeScreen> {
+  final RoomService _roomService = RoomService();
 
-  @override
-  void initState() {
-    super.initState();
-    _bgController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat(reverse: true);
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-    _floatAnimation =
-        Tween<double>(begin: -8, end: 8).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-    final rng = Random();
-    _particles = List.generate(
-      20,
-      (_) => _Particle(
-        x: rng.nextDouble(),
-        y: rng.nextDouble(),
-        size: rng.nextDouble() * 3 + 1,
-        speed: rng.nextDouble() * 0.002 + 0.001,
-        opacity: rng.nextDouble() * 0.5 + 0.1,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _bgController.dispose();
-    _floatController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: AnimatedBuilder(
-        animation: _bgController,
-        builder: (context, child) {
-          return Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF070B14),
-                  Color.lerp(
-                    const Color(0xFF0F1629),
-                    const Color(0xFF1A0A2E),
-                    _bgController.value,
-                  )!,
-                  const Color(0xFF070B14),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: child,
-          );
-        },
-        child: Stack(
-          children: [
-            // Particles
-            ...List.generate(
-              _particles.length,
-              (i) => _ParticleWidget(particle: _particles[i]),
-            ),
-
-            // Glow orb top-right
-            Positioned(
-              top: -80,
-              right: -60,
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppTheme.primary.withValues(alpha: 0.25),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Glow orb bottom-left
-            Positioned(
-              bottom: -60,
-              left: -40,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppTheme.accent.withValues(alpha: 0.15),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Content
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: MediaQuery.of(context).size.height -
-                          MediaQuery.of(context).padding.top -
-                          MediaQuery.of(context).padding.bottom,
-                    ),
-                    child: IntrinsicHeight(
-                      child: Column(
-                        children: [
-                          // Top bar: account info + logout
-                          _buildTopBar(context),
-                          const SizedBox(height: 16),
-
-                          // App Logo / Header
-                          AnimatedBuilder(
-                            animation: _floatAnimation,
-                            builder: (_, child) => Transform.translate(
-                              offset: Offset(0, _floatAnimation.value),
-                              child: Column(
-                                children: [
-                                  // Logo icon
-                                  Container(
-                                    width: 96,
-                                    height: 96,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(24),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.primary
-                                              .withValues(alpha: 0.55),
-                                          blurRadius: 30,
-                                          spreadRadius: 2,
-                                        ),
-                                        BoxShadow(
-                                          color: AppTheme.accent
-                                              .withValues(alpha: 0.3),
-                                          blurRadius: 20,
-                                          spreadRadius: -4,
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(24),
-                                      child: Image.asset(
-                                        'assets/icon/app_icon.png',
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    'KHELA HOST',
-                                    style: GoogleFonts.rajdhani(
-                                      color: AppTheme.textPrimary,
-                                      fontSize: 38,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 4,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Host & Join Mobile Game Tournaments',
-                                    style: GoogleFonts.inter(
-                                      color: AppTheme.textSecondary,
-                                      fontSize: 13,
-                                      letterSpacing: 0.5,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const Spacer(),
-
-                          // Stats row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _StatBadge(
-                                  icon: Icons.people_rounded,
-                                  label: 'Players',
-                                  value: '50K+'),
-                              const SizedBox(width: 16),
-                              _StatBadge(
-                                  icon: Icons.emoji_events_rounded,
-                                  label: 'Tournaments',
-                                  value: '1K+'),
-                              const SizedBox(width: 16),
-                              _StatBadge(
-                                  icon: Icons.gamepad_rounded,
-                                  label: 'Games',
-                                  value: '7+'),
-                            ],
-                          ),
-
-                          const SizedBox(height: 28),
-
-                          // HOST BUTTON
-                          _GlowButton(
-                            label: 'HOST A TOURNAMENT',
-                            icon: Icons.add_circle_rounded,
-                            gradient: AppTheme.primaryGradient,
-                            glowColor: AppTheme.primary,
-                            onTap: () => _handleHostClick(context),
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          // MY TOURNAMENTS (email users only)
-                          StreamBuilder<User?>(
-                            stream: FirebaseAuth.instance.authStateChanges(),
-                            builder: (ctx, snap) {
-                              final user = snap.data;
-                              final isEmailUser =
-                                  user != null && !user.isAnonymous;
-                              if (!isEmailUser) return const SizedBox.shrink();
-                              return Column(
-                                children: [
-                                  const SizedBox(height: 14),
-                                  _GlowButton(
-                                    label: 'MY TOURNAMENTS',
-                                    icon: Icons.emoji_events_rounded,
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF059669),
-                                        Color(0xFF047857)
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    glowColor: AppTheme.accentGreen,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      _slideRoute(
-                                          const MyTournamentsScreen()),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          // JOIN / EXPLORE BUTTON
-                          _GlowButton(
-                            label: 'EXPLORE TOURNAMENTS',
-                            icon: Icons.explore_rounded,
-                            gradient: AppTheme.accentGradient,
-                            glowColor: AppTheme.accent,
-                            onTap: () => Navigator.push(
-                              context,
-                              _slideRoute(const JoinScreen()),
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Games row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: ['\ud83c\udfaf', '\ud83d\udd25', '\ud83d\udca5', '\u26a1', '\u2694\ufe0f']
-                                .map((e) => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8),
-                                      child: Text(e,
-                                          style: const TextStyle(fontSize: 20)),
-                                    ))
-                                .toList(),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          Text(
-                            'PUBG · Free Fire · COD Mobile · Valorant',
-                            style: GoogleFonts.inter(
-                              color: AppTheme.textMuted,
-                              fontSize: 11,
-                              letterSpacing: 1,
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+  PageRoute _slideRoute(Widget page) => PageRouteBuilder(
+        pageBuilder: (ctx, anim1, anim2) => page,
+        transitionDuration: const Duration(milliseconds: 280),
+        transitionsBuilder: (ctx, anim, secAnim, child) => SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+          child: child,
         ),
-      ),
-    );
-  }
+      );
 
   void _handleHostClick(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -345,339 +47,1157 @@ class _HomeScreenState extends State<HomeScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.bgCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.cardBorder, width: 1.0),
+        ),
         title: Row(
           children: [
-            const Icon(Icons.lock_person_rounded,
-                color: AppTheme.primaryLight, size: 24),
-            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.lock_outline_rounded,
+                  color: AppTheme.primaryLight, size: 20),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'ACCOUNT REQUIRED',
-                style: GoogleFonts.rajdhani(
+                'Host Account Required',
+                style: GoogleFonts.plusJakartaSans(
                   color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  letterSpacing: 1,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
                 ),
               ),
             ),
           ],
         ),
         content: Text(
-          'To host a tournament and manage your room credentials anytime, you must create or sign into an account.\n\nGuest users cannot host tournaments.',
+          'To host tournaments and manage room credentials, please sign in with an email account.\n\nGuest users can browse and participate in public tournaments.',
           style: GoogleFonts.inter(
             color: AppTheme.textSecondary,
             fontSize: 13,
-            height: 1.5,
+            height: 1.45,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.textMuted)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              // Sign out guest user so AuthGate redirects to AuthScreen
               await FirebaseAuth.instance.signOut();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
+              minimumSize: const Size(140, 42),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('SIGN IN / REGISTER'),
+            child: Text(
+              'Sign In / Register',
+              style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700, fontSize: 13),
+            ),
           ),
         ],
       ),
     );
   }
 
-  PageRoute _slideRoute(Widget page) => PageRouteBuilder(
-        pageBuilder: (ctx, anim1, anim2) => page,
-        transitionDuration: const Duration(milliseconds: 400),
-        transitionsBuilder: (ctx, anim, secAnim, child) => SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-          child: child,
-        ),
-      );
-
-  Widget _buildTopBar(BuildContext context) {
+  void _showAccountMenu(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final isGuest = user == null || user.isAnonymous;
-    final String displayName;
-    if (!isGuest) {
-      final dn = user.displayName;
-      final em = user.email;
-      displayName = (dn != null && dn.isNotEmpty) ? dn : (em ?? 'Host');
-    } else {
-      displayName = 'Guest';
-    }
-    return Row(
-      children: [
-        // Account pill
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: AppTheme.bgCard,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.divider),
+    final email = user?.email;
+    final displayName = user?.displayName;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        decoration: const BoxDecoration(
+          color: AppTheme.bgCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border(
+            top: BorderSide(color: AppTheme.cardBorder, width: 1.2),
+            left: BorderSide(color: AppTheme.cardBorder, width: 1.2),
+            right: BorderSide(color: AppTheme.cardBorder, width: 1.2),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isGuest ? Icons.person_outline_rounded : Icons.verified_rounded,
-                size: 14,
-                color: isGuest ? AppTheme.textMuted : AppTheme.accentGreen,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                displayName,
-                style: GoogleFonts.inter(
-                  color: isGuest ? AppTheme.textMuted : AppTheme.textSecondary,
-                  fontSize: 12,
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isGuest
+                        ? const Color(0xFF1E293B)
+                        : AppTheme.primary,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    isGuest
+                        ? 'G'
+                        : ((displayName?.isNotEmpty == true
+                                ? displayName![0]
+                                : email?[0]) ??
+                            'U')
+                            .toUpperCase(),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              isGuest
+                                  ? 'Guest Player'
+                                  : (displayName ?? 'Tournament Host'),
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isGuest
+                                  ? AppTheme.bgSurface
+                                  : AppTheme.accentGreen
+                                      .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              isGuest ? 'GUEST' : 'VERIFIED',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: isGuest
+                                    ? AppTheme.textSecondary
+                                    : AppTheme.accentGreen,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isGuest
+                            ? 'Limited access • Sign in to host'
+                            : (email ?? 'Signed in account'),
+                        style: GoogleFonts.inter(
+                          color: AppTheme.textMuted,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const Divider(color: AppTheme.divider),
+            const SizedBox(height: 8),
+            if (!isGuest)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.emoji_events_outlined,
+                      color: AppTheme.primaryLight, size: 18),
+                ),
+                title: Text(
+                  'My Hosted Tournaments',
+                  style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded,
+                    color: AppTheme.textMuted, size: 18),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                      context, _slideRoute(const MyTournamentsScreen()));
+                },
+              ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isGuest ? AppTheme.primary : AppTheme.accentRed)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isGuest ? Icons.login_rounded : Icons.logout_rounded,
+                  color: isGuest ? AppTheme.primaryLight : AppTheme.accentRed,
+                  size: 18,
+                ),
+              ),
+              title: Text(
+                isGuest ? 'Sign In / Register Account' : 'Sign Out',
+                style: GoogleFonts.plusJakartaSans(
+                  color: isGuest ? AppTheme.textPrimary : AppTheme.accentRed,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded,
+                  color: AppTheme.textMuted, size: 18),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await FirebaseAuth.instance.signOut();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isGuest = user == null || user.isAnonymous;
+    final displayName = !isGuest
+        ? (user.displayName?.isNotEmpty == true
+            ? user.displayName!
+            : (user.email?.split('@').first ?? 'Host'))
+        : 'Guest';
+
+    return Scaffold(
+      backgroundColor: AppTheme.bgDeep,
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Top App Bar
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  children: [
+                    // Brand Logo Icon
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/icon/app_icon.png',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Khela',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.textPrimary,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            Text(
+                              'Host',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.primaryLight,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'Tournament Platform',
+                          style: GoogleFonts.inter(
+                            color: AppTheme.textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    // User Chip
+                    GestureDetector(
+                      onTap: () => _showAccountMenu(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.bgCard,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: AppTheme.cardBorder, width: 1.0),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isGuest
+                                    ? AppTheme.accentGold
+                                    : AppTheme.accentGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 96),
+                              child: Text(
+                                displayName,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 14,
+                              color: AppTheme.textMuted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Hero Arena Banner
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    color: AppTheme.bgCard,
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF162032),
+                        Color(0xFF101725),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(
+                      color: AppTheme.cardBorder,
+                      width: 1.0,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'TOURNAMENTS',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: AppTheme.primaryLight,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.shield_outlined,
+                                size: 16, color: AppTheme.textMuted),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Host & Join Mobile Matches',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.textPrimary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Organize competitive tournaments with automated room password reveals, participant rosters, and match schedules.',
+                          style: GoogleFonts.inter(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                            height: 1.45,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            _FeaturePill(
+                                icon: Icons.schedule_rounded,
+                                label: 'Scheduled Unlock'),
+                            const SizedBox(width: 8),
+                            _FeaturePill(
+                                icon: Icons.verified_user_outlined,
+                                label: 'Verified Hosts'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Quick Actions: Host & Explore Cards
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    // Host Action Card
+                    Expanded(
+                      child: _ActionCard(
+                        title: 'Host Match',
+                        subtitle: 'Create room & password timer',
+                        icon: Icons.add_circle_outline_rounded,
+                        isPrimary: true,
+                        onTap: () => _handleHostClick(context),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Explore Action Card
+                    Expanded(
+                      child: _ActionCard(
+                        title: 'Explore Rooms',
+                        subtitle: 'Browse tournaments & join',
+                        icon: Icons.explore_outlined,
+                        isPrimary: false,
+                        onTap: () => Navigator.push(
+                            context, _slideRoute(const JoinScreen())),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // My Tournaments Bar (if logged in email user)
+            if (!isGuest)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => Navigator.push(
+                        context, _slideRoute(const MyTournamentsScreen())),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: AppTheme.glassCard(borderRadius: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.emoji_events_outlined,
+                                color: AppTheme.primaryLight, size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'My Hosted Tournaments',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: AppTheme.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  'Manage passwords, players & match status',
+                                  style: GoogleFonts.inter(
+                                    color: AppTheme.textMuted,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded,
+                              color: AppTheme.textMuted, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Popular Esports Games Carousel
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Featured Games',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                          context, _slideRoute(const JoinScreen())),
+                      child: Text(
+                        'View All',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.primaryLight,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Real Game Icon Cards Carousel
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 102,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: AppConstants.games.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final game = AppConstants.games[index];
+                    return _GameCategoryCard(
+                      name: game,
+                      onTap: () => Navigator.push(
+                        context,
+                        _slideRoute(JoinScreen(initialFilter: game)),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Live & Upcoming Tournaments Feed Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.accentGreen,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Active Tournaments',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                          context, _slideRoute(const JoinScreen())),
+                      child: Text(
+                        'Explore',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.primaryLight,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Dynamic Stream of active public tournaments
+            StreamBuilder<List<TournamentRoom>>(
+              stream: _roomService.streamPublicRooms(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(28),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primary,
+                          strokeWidth: 2.0,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                final rooms = snapshot.data ?? [];
+
+                if (rooms.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 6),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: AppTheme.glassCard(borderRadius: 16),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                              ),
+                              child: const Icon(Icons.sports_esports_outlined,
+                                  color: AppTheme.primaryLight, size: 26),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'No Active Tournaments',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.textPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Create the first match room and invite players!',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                color: AppTheme.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: () => _handleHostClick(context),
+                              icon: const Icon(Icons.add_rounded, size: 16),
+                              label: const Text('Host Tournament'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                minimumSize: const Size(160, 38),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return SliverPadding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final room = rooms[index];
+                        return _LiveTournamentCard(
+                          room: room,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    RoomScreen(docId: room.id, isHost: false),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      childCount: rooms.length > 5 ? 5 : rooms.length,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            // Footer statistics
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bgCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.cardBorder),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _StatItem(
+                          title: '50K+',
+                          subtitle: 'Players',
+                          icon: Icons.people_outline_rounded),
+                      Container(
+                          width: 1, height: 28, color: AppTheme.divider),
+                      _StatItem(
+                          title: '1K+',
+                          subtitle: 'Tournaments',
+                          icon: Icons.emoji_events_outlined),
+                      Container(
+                          width: 1, height: 28, color: AppTheme.divider),
+                      _StatItem(
+                          title: '7+',
+                          subtitle: 'Games',
+                          icon: Icons.sports_esports_outlined),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeaturePill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _FeaturePill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: const Color(0xFF334155),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: AppTheme.primaryLight),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isPrimary;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.isPrimary = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 124,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isPrimary ? AppTheme.primary : AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isPrimary ? AppTheme.primaryLight : AppTheme.cardBorder,
+              width: 1.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isPrimary
+                          ? Colors.white.withValues(alpha: 0.18)
+                          : AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: isPrimary ? Colors.white : AppTheme.primaryLight,
+                      size: 20,
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_outward_rounded,
+                    size: 16,
+                    color: isPrimary ? Colors.white70 : AppTheme.textMuted,
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      color: isPrimary
+                          ? Colors.white.withValues(alpha: 0.8)
+                          : AppTheme.textMuted,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameCategoryCard extends StatelessWidget {
+  final String name;
+  final VoidCallback onTap;
+
+  const _GameCategoryCard({
+    required this.name,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: 105,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.cardBorder, width: 1.0),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GameIconWidget(game: name, size: 42, borderRadius: 10),
+              const SizedBox(height: 8),
+              Text(
+                name,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
 
-        const Spacer(),
+class _LiveTournamentCard extends StatelessWidget {
+  final TournamentRoom room;
+  final VoidCallback onTap;
 
-        // Sign out / Sign in button
-        GestureDetector(
-          onTap: () async {
-            if (isGuest) {
-              // Sign out anonymous → goes to AuthScreen via AuthGate
-              await FirebaseAuth.instance.signOut();
-            } else {
-              // Confirm sign out for email users
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: AppTheme.bgCard,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  title: Text('Sign Out?',
-                      style: GoogleFonts.rajdhani(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w700)),
-                  content: Text('You will need to sign in again to manage your tournaments.',
-                      style: GoogleFonts.inter(
-                          color: AppTheme.textSecondary, fontSize: 13)),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel',
-                          style: TextStyle(color: AppTheme.textMuted)),
+  const _LiveTournamentCard({required this.room, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isFull = room.players.length >= room.maxPlayers;
+    final isStarted = room.status == 'started';
+    final timeStr = DateFormat('hh:mm a • MMM dd').format(room.startTime);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: AppTheme.glassCard(
+        borderColor: isStarted ? AppTheme.accentGreen : AppTheme.cardBorder,
+        borderRadius: 14,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    GameIconWidget(game: room.game, size: 22, borderRadius: 5),
+                    const SizedBox(width: 8),
+                    Text(
+                      room.game,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Sign Out',
-                          style: TextStyle(color: AppTheme.accentRed)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: (isStarted
+                                ? AppTheme.accentGreen
+                                : (isFull
+                                    ? AppTheme.accentRed
+                                    : AppTheme.primary))
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        isStarted ? 'LIVE' : (isFull ? 'FULL' : 'OPEN'),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: isStarted
+                              ? AppTheme.accentGreen
+                              : (isFull
+                                  ? AppTheme.accentRed
+                                  : AppTheme.primaryLight),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              );
-              if (confirmed == true) {
-                await FirebaseAuth.instance.signOut();
-              }
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: AppTheme.bgCard,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.divider),
-            ),
-            child: Icon(
-              isGuest ? Icons.login_rounded : Icons.logout_rounded,
-              size: 18,
-              color: isGuest ? AppTheme.accent : AppTheme.textMuted,
+                const SizedBox(height: 8),
+                Text(
+                  room.name,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.schedule_rounded,
+                        size: 13, color: AppTheme.textMuted),
+                    const SizedBox(width: 4),
+                    Text(
+                      timeStr,
+                      style: GoogleFonts.inter(
+                        color: AppTheme.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(Icons.people_alt_outlined,
+                        size: 13, color: AppTheme.textMuted),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${room.players.length}/${room.maxPlayers}',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.textPrimary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
-
-class _GlowButton extends StatefulWidget {
-  final String label;
+class _StatItem extends StatelessWidget {
+  final String title;
+  final String subtitle;
   final IconData icon;
-  final LinearGradient gradient;
-  final Color glowColor;
-  final VoidCallback onTap;
 
-  const _GlowButton({
-    required this.label,
+  const _StatItem({
+    required this.title,
+    required this.subtitle,
     required this.icon,
-    required this.gradient,
-    required this.glowColor,
-    required this.onTap,
   });
 
   @override
-  State<_GlowButton> createState() => _GlowButtonState();
-}
-
-class _GlowButtonState extends State<_GlowButton> {
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          width: double.infinity,
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: widget.gradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: widget.glowColor.withValues(alpha: _pressed ? 0.2 : 0.45),
-                blurRadius: _pressed ? 12 : 24,
-                spreadRadius: -4,
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppTheme.primaryLight),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(widget.icon, color: Colors.white, size: 22),
-              const SizedBox(width: 10),
-              Text(
-                widget.label,
-                style: GoogleFonts.rajdhani(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
+            ),
+            Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                color: AppTheme.textMuted,
+                fontSize: 10,
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _StatBadge(
-      {required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: AppTheme.glassCard(borderRadius: 12),
-      child: Column(
-        children: [
-          Icon(icon, color: AppTheme.accent, size: 18),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
             ),
-          ),
-          Text(
-            label,
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Particle system
-class _Particle {
-  double x, y, size, speed, opacity;
-  _Particle(
-      {required this.x,
-      required this.y,
-      required this.size,
-      required this.speed,
-      required this.opacity});
-}
-
-class _ParticleWidget extends StatefulWidget {
-  final _Particle particle;
-  const _ParticleWidget({required this.particle});
-
-  @override
-  State<_ParticleWidget> createState() => _ParticleWidgetState();
-}
-
-class _ParticleWidgetState extends State<_ParticleWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: (1 / widget.particle.speed).round()),
-    )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0, end: 1).animate(_ctrl);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return AnimatedBuilder(
-      animation: _anim,
-      builder: (ctx, child) => Positioned(
-        left: widget.particle.x * size.width,
-        top: (widget.particle.y + _anim.value * 0.05) * size.height,
-        child: Opacity(
-          opacity: widget.particle.opacity,
-          child: Container(
-            width: widget.particle.size,
-            height: widget.particle.size,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppTheme.accent,
-            ),
-          ),
+          ],
         ),
-      ),
+      ],
     );
   }
 }

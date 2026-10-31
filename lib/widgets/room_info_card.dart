@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:khelahost/core/theme.dart';
 import 'package:khelahost/models/tournament_room.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:intl/intl.dart';
 
 class RoomInfoCard extends StatefulWidget {
   final TournamentRoom room;
@@ -89,13 +89,23 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
 
   void _copy(BuildContext context, String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$label copied!'),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded,
+                color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text('$label copied to clipboard',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+          ],
+        ),
         backgroundColor: AppTheme.accentGreen,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
@@ -126,7 +136,7 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
       decoration: AppTheme.glassCard(
         borderColor: !hasCredentials
             ? AppTheme.accentGold
-            : (isLocked ? AppTheme.accentGold : AppTheme.accent),
+            : (isLocked ? AppTheme.accentGold : AppTheme.cardBorder),
         borderRadius: 20,
       ),
       padding: const EdgeInsets.all(20),
@@ -136,27 +146,37 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
           // Top title row with optional Host Edit button
           Row(
             children: [
-              Icon(
-                !hasCredentials
-                    ? Icons.pending_actions_rounded
-                    : (isLocked
-                        ? Icons.lock_clock_rounded
-                        : Icons.meeting_room_rounded),
-                color: !hasCredentials || isLocked
-                    ? AppTheme.accentGold
-                    : AppTheme.accent,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'ROOM CREDENTIALS',
-                style: TextStyle(
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: (!hasCredentials || isLocked
+                          ? AppTheme.accentGold
+                          : AppTheme.primary)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  !hasCredentials
+                      ? Icons.pending_actions_rounded
+                      : (isLocked
+                          ? Icons.lock_clock_rounded
+                          : Icons.vpn_key_rounded),
                   color: !hasCredentials || isLocked
                       ? AppTheme.accentGold
-                      : AppTheme.accent,
-                  fontSize: 12,
+                      : AppTheme.primaryLight,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'ROOM CREDENTIALS',
+                style: GoogleFonts.plusJakartaSans(
+                  color: !hasCredentials || isLocked
+                      ? AppTheme.accentGold
+                      : AppTheme.textPrimary,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
+                  letterSpacing: 1.0,
                 ),
               ),
               const Spacer(),
@@ -165,26 +185,26 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
                   onTap: widget.onEditCredentials,
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: AppTheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: AppTheme.primary.withValues(alpha: 0.3)),
+                        color: AppTheme.primary.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.edit_rounded,
-                            color: AppTheme.primaryLight, size: 13),
+                            color: AppTheme.primaryLight, size: 12),
                         const SizedBox(width: 4),
                         Text(
-                          hasCredentials ? 'EDIT' : 'SET NOW',
-                          style: GoogleFonts.rajdhani(
+                          hasCredentials ? 'Edit' : 'Set Now',
+                          style: GoogleFonts.plusJakartaSans(
                             color: AppTheme.primaryLight,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             fontSize: 12,
-                            letterSpacing: 1,
                           ),
                         ),
                       ],
@@ -197,13 +217,10 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
 
           // Content variations
           if (!hasCredentials) ...[
-            // Credentials have not been set yet
             _buildPendingCredentialsCard(isHost),
           ] else if (isLocked && !isHost) ...[
-            // Non-host player viewing credentials that are scheduled with timer
             _buildLockedCountdownCard(),
           ] else ...[
-            // Revealed credentials (or host view with timer banner)
             _buildRevealedCredentials(room, isHost, isLocked),
           ],
         ],
@@ -215,37 +232,38 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
     if (isHost) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: AppTheme.bgSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: AppTheme.accentGold.withValues(alpha: 0.3), width: 1),
+            color: AppTheme.accentGold.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: AppTheme.accentGold.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.key_off_rounded,
-                  color: AppTheme.accentGold, size: 28),
+                  color: AppTheme.accentGold, size: 24),
             ),
             const SizedBox(height: 10),
             Text(
-              'ROOM ID & PASSWORD NOT SET',
-              style: GoogleFonts.rajdhani(
+              'Room ID & Password Not Set',
+              style: GoogleFonts.plusJakartaSans(
                 color: AppTheme.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'You chose to give credentials later. Registered players see them as pending until you add them.',
+              'You chose to set credentials later. Players see them as pending until you add them.',
               style: GoogleFonts.inter(
                 color: AppTheme.textMuted,
                 fontSize: 12,
@@ -257,19 +275,18 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
             if (widget.onEditCredentials != null)
               ElevatedButton.icon(
                 onPressed: widget.onEditCredentials,
-                icon: const Icon(Icons.add_moderator_rounded, size: 18),
-                label: const Text('SET ROOM ID & PASSWORD'),
+                icon: const Icon(Icons.add_moderator_rounded, size: 16),
+                label: const Text('Set In-Game Room Details'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accent,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  backgroundColor: AppTheme.accentGold,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(200, 42),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  textStyle: GoogleFonts.rajdhani(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    letterSpacing: 1,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  textStyle: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -280,41 +297,42 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppTheme.bgSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: AppTheme.accentGold.withValues(alpha: 0.25), width: 1),
+          color: AppTheme.accentGold.withValues(alpha: 0.25),
+          width: 1,
+        ),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: AppTheme.accentGold.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.hourglass_top_rounded,
-                color: AppTheme.accentGold, size: 28),
+                color: AppTheme.accentGold, size: 24),
           ),
           const SizedBox(height: 10),
           Text(
-            'CREDENTIALS PENDING',
-            style: GoogleFonts.rajdhani(
+            'Credentials Pending',
+            style: GoogleFonts.plusJakartaSans(
               color: AppTheme.accentGold,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
-            'The tournament host has not set the in-game Room ID and Password yet.\nThey will appear here before the match begins!',
+            'The tournament host will set the in-game Room ID and Password before match kickoff.',
             style: GoogleFonts.inter(
               color: AppTheme.textSecondary,
               fontSize: 12,
-              height: 1.5,
+              height: 1.4,
             ),
             textAlign: TextAlign.center,
           ),
@@ -334,13 +352,13 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppTheme.bgSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppTheme.accentGold.withValues(alpha: 0.35),
-          width: 1.5,
+          width: 1.2,
         ),
       ),
       child: Column(
@@ -349,29 +367,28 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: AppTheme.accentGold.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.lock_rounded,
-                    color: AppTheme.accentGold, size: 22),
+                    color: AppTheme.accentGold, size: 18),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ROOM ID & PASSWORD LOCKED',
-                    style: GoogleFonts.rajdhani(
+                    'Credentials Auto-Unlock Timer',
+                    style: GoogleFonts.plusJakartaSans(
                       color: AppTheme.accentGold,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   Text(
-                    'Host set a timer to reveal credentials',
+                    'Protected until host scheduled reveal time',
                     style: GoogleFonts.inter(
                       color: AppTheme.textMuted,
                       fontSize: 11,
@@ -383,36 +400,33 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
           ),
           const SizedBox(height: 16),
 
-          // Ticker display
+          // Digital Timer display
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildTimeUnit(
-                  hours.toString().padLeft(2, '0'), 'HOURS'),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
+              _buildDigitalBox(hours.toString().padLeft(2, '0'), 'HOURS'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Text(':',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                         color: AppTheme.accentGold,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w800)),
               ),
-              _buildTimeUnit(
-                  minutes.toString().padLeft(2, '0'), 'MINS'),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
+              _buildDigitalBox(minutes.toString().padLeft(2, '0'), 'MINS'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Text(':',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                         color: AppTheme.accentGold,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w800)),
               ),
-              _buildTimeUnit(
-                  seconds.toString().padLeft(2, '0'), 'SECS'),
+              _buildDigitalBox(seconds.toString().padLeft(2, '0'), 'SECS'),
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           if (revealTimeStr.isNotEmpty)
             Text(
               'Unlocks automatically at $revealTimeStr',
@@ -426,24 +440,26 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
     );
   }
 
-  Widget _buildTimeUnit(String value, String label) {
+  Widget _buildDigitalBox(String value, String label) {
     return Column(
       children: [
         Container(
           width: 52,
-          height: 46,
+          height: 44,
           decoration: BoxDecoration(
             color: AppTheme.bgCard,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
-                color: AppTheme.accentGold.withValues(alpha: 0.3)),
+              color: AppTheme.accentGold.withValues(alpha: 0.3),
+              width: 1,
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
             value,
-            style: GoogleFonts.rajdhani(
+            style: GoogleFonts.plusJakartaSans(
               color: AppTheme.accentGold,
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -451,11 +467,10 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             color: AppTheme.textMuted,
             fontSize: 9,
-            letterSpacing: 1,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],
@@ -471,39 +486,41 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Host Timer notice banner if credentials are locked for players
+        // Host notice if credentials are locked for players
         if (isHost && isLocked) ...[
           Container(
             padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(
               color: AppTheme.accentGold.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: AppTheme.accentGold.withValues(alpha: 0.3)),
+                color: AppTheme.accentGold.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
                 const Icon(Icons.timer_outlined,
                     color: AppTheme.accentGold, size: 18),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'HIDDEN FROM PLAYERS UNTIL $revealTimeStr',
-                        style: GoogleFonts.rajdhani(
+                        'Hidden from players until $revealTimeStr',
+                        style: GoogleFonts.plusJakartaSans(
                           color: AppTheme.accentGold,
                           fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
-                        'You can view them, but players cannot until the timer ends.',
+                        'Only you can view this right now.',
                         style: GoogleFonts.inter(
-                            color: AppTheme.textMuted, fontSize: 11),
+                          color: AppTheme.textMuted,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -515,32 +532,40 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
                       foregroundColor: AppTheme.accentGreen,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
-                    child: const Text('REVEAL NOW',
-                        style: TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.w800)),
+                    child: Text(
+                      'Reveal Now',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
               ],
             ),
           ),
         ] else if (isHost && !isLocked && room.hasCredentials) ...[
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(
               color: AppTheme.accentGreen.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: AppTheme.accentGreen.withValues(alpha: 0.2)),
+                color: AppTheme.accentGreen.withValues(alpha: 0.2),
+              ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.visibility_rounded,
-                    color: AppTheme.accentGreen, size: 14),
-                const SizedBox(width: 6),
+                const Icon(Icons.check_circle_outline_rounded,
+                    color: AppTheme.accentGreen, size: 16),
+                const SizedBox(width: 8),
                 Text(
-                  'Visible to all registered tournament players',
+                  'Visible to all registered players',
                   style: GoogleFonts.inter(
-                      color: AppTheme.accentGreen, fontSize: 11),
+                    color: AppTheme.accentGreen,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -549,22 +574,22 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
 
         // Room ID Row
         _CredRow(
-          label: 'Room ID',
+          label: 'In-Game Room ID',
           value: room.roomId.isNotEmpty ? room.roomId : 'Not set',
           icon: Icons.tag_rounded,
-          color: AppTheme.primaryLight,
+          accentColor: AppTheme.primaryLight,
           onCopy: room.roomId.isNotEmpty
               ? () => _copy(context, room.roomId, 'Room ID')
               : () {},
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         // Password Row
         _CredRow(
-          label: 'Password',
+          label: 'Room Password',
           value: room.roomPassword.isNotEmpty ? room.roomPassword : 'None',
-          icon: Icons.lock_rounded,
-          color: AppTheme.accentGold,
+          icon: Icons.lock_outline_rounded,
+          accentColor: AppTheme.accentGold,
           onCopy: room.roomPassword.isNotEmpty
               ? () => _copy(context, room.roomPassword, 'Password')
               : () {},
@@ -578,18 +603,18 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => _share(room),
-              icon: const Icon(Icons.share_rounded, size: 18),
-              label: const Text('SHARE ROOM'),
+              icon: const Icon(Icons.share_outlined, size: 18),
+              label: const Text('Share Room Details'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.accent,
-                side: const BorderSide(color: AppTheme.accent),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                foregroundColor: AppTheme.textPrimary,
+                side: const BorderSide(color: AppTheme.cardBorder, width: 1.2),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                textStyle: const TextStyle(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  letterSpacing: 1.5,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -604,14 +629,14 @@ class _CredRow extends StatefulWidget {
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
+  final Color accentColor;
   final VoidCallback onCopy;
 
   const _CredRow({
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
+    required this.accentColor,
     required this.onCopy,
   });
 
@@ -625,70 +650,71 @@ class _CredRowState extends State<_CredRow> {
   @override
   void initState() {
     super.initState();
-    _obscure = widget.label == 'Password' && widget.value != 'None';
+    _obscure = widget.label.contains('Password') && widget.value != 'None';
   }
 
   @override
   Widget build(BuildContext context) {
+    final isPassword = widget.label.contains('Password');
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppTheme.bgSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: widget.color.withValues(alpha: 0.2), width: 1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.cardBorder, width: 1.2),
       ),
       child: Row(
         children: [
-          Icon(widget.icon, color: widget.color, size: 18),
-          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: widget.accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(widget.icon, color: widget.accentColor, size: 16),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.label,
-                  style: const TextStyle(
+                  style: GoogleFonts.inter(
                     color: AppTheme.textMuted,
                     fontSize: 11,
-                    letterSpacing: 1,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _obscure ? '•' * widget.value.length : widget.value,
-                  style: TextStyle(
-                    color: widget.color,
-                    fontSize: 18,
+                  _obscure ? '••••••••' : widget.value,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.textPrimary,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
             ),
           ),
-          if (widget.label == 'Password' && widget.value != 'None')
-            GestureDetector(
-              onTap: () => setState(() => _obscure = !_obscure),
-              child: Icon(
+          if (isPassword && widget.value != 'None')
+            IconButton(
+              icon: Icon(
                 _obscure
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
                 color: AppTheme.textMuted,
-                size: 20,
+                size: 18,
               ),
+              onPressed: () => setState(() => _obscure = !_obscure),
             ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: widget.onCopy,
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: widget.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.copy_rounded, color: widget.color, size: 16),
-            ),
+          IconButton(
+            icon: const Icon(Icons.copy_rounded,
+                color: AppTheme.primaryLight, size: 18),
+            onPressed: widget.onCopy,
+            tooltip: 'Copy',
           ),
         ],
       ),

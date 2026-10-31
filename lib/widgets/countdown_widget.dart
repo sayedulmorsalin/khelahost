@@ -1,10 +1,9 @@
-import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:khelahost/core/theme.dart';
 import 'package:khelahost/models/tournament_room.dart';
 
-/// Animated countdown timer that displays days, hours, minutes, seconds
-/// with a pulsing ring and color transitions.
 class CountdownWidget extends StatefulWidget {
   final DateTime targetTime;
   final TournamentRoom room;
@@ -19,44 +18,30 @@ class CountdownWidget extends StatefulWidget {
   State<CountdownWidget> createState() => _CountdownWidgetState();
 }
 
-class _CountdownWidgetState extends State<CountdownWidget>
-    with TickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late AnimationController _ringController;
-  late Animation<double> _pulseAnimation;
+class _CountdownWidgetState extends State<CountdownWidget> {
+  Timer? _timer;
   Duration _remaining = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _ringController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat();
-    _pulseAnimation =
-        Tween<double>(begin: 0.95, end: 1.05).animate(_pulseController);
     _updateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) _updateRemaining();
+    });
   }
 
   void _updateRemaining() {
     final now = DateTime.now();
     final diff = widget.targetTime.difference(now);
-    if (mounted) {
-      setState(() => _remaining = diff.isNegative ? Duration.zero : diff);
-      if (!diff.isNegative) {
-        Future.delayed(const Duration(seconds: 1), _updateRemaining);
-      }
-    }
+    setState(() {
+      _remaining = diff.isNegative ? Duration.zero : diff;
+    });
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
-    _ringController.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -71,155 +56,168 @@ class _CountdownWidgetState extends State<CountdownWidget>
     final minutes = _remaining.inMinutes % 60;
     final seconds = _remaining.inSeconds % 60;
 
-    // Total seconds for ring progress (cap at 24h display)
-    final totalSeconds = widget.targetTime.difference(DateTime.now()).inSeconds;
-    final progress = totalSeconds > 0
-        ? 1 - (_remaining.inSeconds / totalSeconds).clamp(0.0, 1.0)
-        : 1.0;
-
     return Container(
       decoration: AppTheme.glassCard(
-        borderColor: _isStarted ? AppTheme.accentGreen : AppTheme.primary,
+        borderColor: _isStarted ? AppTheme.accentGreen : AppTheme.cardBorder,
         borderRadius: 20,
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Column(
         children: [
+          // Header Status Strip
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _isStarted ? AppTheme.accentGreen : AppTheme.accent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: (_isStarted
-                              ? AppTheme.accentGreen
-                              : AppTheme.accent)
-                          .withValues(alpha: 0.8),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _isStarted ? 'GAME STARTED!' : 'STARTS IN',
-                style: TextStyle(
-                  color: _isStarted ? AppTheme.accentGreen : AppTheme.accent,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (_isStarted)
-            ScaleTransition(
-              scale: _pulseAnimation,
-              child: Text(
-                '🎮 GAME ON!',
-                style: TextStyle(
-                  color: AppTheme.accentGreen,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                ),
-              ),
-            )
-          else ...[
-            // Animated ring
-            SizedBox(
-              width: 120,
-              height: 120,
-              child: AnimatedBuilder(
-                animation: _ringController,
-                builder: (ctx, child) => CustomPaint(
-                  painter: _RingPainter(progress: progress),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _pad(hours),
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                          ),
-                        ),
-                        Text(
-                          'HRS',
-                          style: TextStyle(
-                            color: AppTheme.textMuted,
-                            fontSize: 10,
-                            letterSpacing: 1.5,
-                          ),
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          _isStarted ? AppTheme.accentGreen : AppTheme.accentGold,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_isStarted
+                                  ? AppTheme.accentGreen
+                                  : AppTheme.accentGold)
+                              .withValues(alpha: 0.6),
+                          blurRadius: 8,
+                          spreadRadius: 1,
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isStarted ? 'MATCH IN PROGRESS' : 'MATCH COUNTDOWN',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: _isStarted
+                          ? AppTheme.accentGreen
+                          : AppTheme.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (_isStarted
+                          ? AppTheme.accentGreen
+                          : AppTheme.primary)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  _isStarted ? 'LIVE' : 'UPCOMING',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: _isStarted
+                        ? AppTheme.accentGreen
+                        : AppTheme.primaryLight,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Days / Minutes / Seconds row
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          if (_isStarted)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.sports_esports_rounded,
+                      color: AppTheme.accentGreen, size: 28),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Match Has Commenced',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            // 4 Balanced Digital Segments
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _TimeBox(value: _pad(days), label: 'DAYS'),
-                _Separator(),
-                _TimeBox(value: _pad(minutes), label: 'MIN'),
-                _Separator(),
-                _TimeBox(value: _pad(seconds), label: 'SEC'),
+                _TimeUnit(value: _pad(days), label: 'DAYS'),
+                _TimeSeparator(),
+                _TimeUnit(value: _pad(hours), label: 'HOURS'),
+                _TimeSeparator(),
+                _TimeUnit(value: _pad(minutes), label: 'MINUTES'),
+                _TimeSeparator(),
+                _TimeUnit(value: _pad(seconds), label: 'SECONDS', isHighlight: true),
               ],
             ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _TimeBox extends StatelessWidget {
+class _TimeUnit extends StatelessWidget {
   final String value;
   final String label;
-  const _TimeBox({required this.value, required this.label});
+  final bool isHighlight;
+
+  const _TimeUnit({
+    required this.value,
+    required this.label,
+    this.isHighlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Container(
-          width: 64,
-          height: 56,
+          width: 58,
+          height: 52,
           decoration: BoxDecoration(
             color: AppTheme.bgSurface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isHighlight
+                  ? AppTheme.primaryLight.withValues(alpha: 0.4)
+                  : AppTheme.cardBorder,
+              width: 1.2,
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
             value,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 24,
+            style: GoogleFonts.plusJakartaSans(
+              color: isHighlight ? AppTheme.accent : AppTheme.textPrimary,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
             ),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             color: AppTheme.textMuted,
-            fontSize: 10,
-            letterSpacing: 1.5,
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
           ),
         ),
       ],
@@ -227,54 +225,19 @@ class _TimeBox extends StatelessWidget {
   }
 }
 
-class _Separator extends StatelessWidget {
+class _TimeSeparator extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => const Text(
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 18),
+      child: Text(
         ':',
-        style: TextStyle(
-          color: AppTheme.primary,
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
+        style: GoogleFonts.plusJakartaSans(
+          color: AppTheme.textMuted,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
         ),
-      );
-}
-
-class _RingPainter extends CustomPainter {
-  final double progress;
-  _RingPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 8;
-
-    // Background ring
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = AppTheme.divider
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6,
-    );
-
-    // Progress arc
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    canvas.drawArc(
-      rect,
-      -pi / 2,
-      2 * pi * progress,
-      false,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [AppTheme.primary, AppTheme.accent],
-        ).createShader(rect)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
-        ..strokeCap = StrokeCap.round,
+      ),
     );
   }
-
-  @override
-  bool shouldRepaint(_RingPainter old) => old.progress != progress;
 }
