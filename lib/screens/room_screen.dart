@@ -238,7 +238,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
               decoration: BoxDecoration(
                 color: AppTheme.bgSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.cardBorder),
+                border: Border.all(color: AppTheme.cardBorderGold),
               ),
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
@@ -248,7 +248,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(width: 12),
-          GameIconWidget(game: room.game, size: 36, borderRadius: 8),
+          GameIconWidget(game: room.game, size: 40, borderRadius: 10),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -272,17 +272,22 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1.5),
+                            horizontal: 7, vertical: 2.5),
                         decoration: BoxDecoration(
-                          color: AppTheme.accentGold.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
+                          color: AppTheme.gold.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppTheme.gold.withValues(alpha: 0.45),
+                            width: 0.8,
+                          ),
                         ),
                         child: Text(
-                          'YOU ARE HOST',
+                          'VIP HOST',
                           style: GoogleFonts.plusJakartaSans(
-                            color: AppTheme.accentGold,
+                            color: AppTheme.goldLight,
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
@@ -370,42 +375,68 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
 
   Widget _buildPrizeCard(TournamentRoom room) {
     return Container(
-      decoration: AppTheme.glassCard(
-        borderColor: AppTheme.accentGold,
-        borderRadius: 16,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF1B2436),
+            Color(0xFF0F1524),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(
+          color: AppTheme.gold.withValues(alpha: 0.45),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.gold.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.accentGold.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
+              gradient: AppTheme.goldGradient,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.gold.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: const Icon(Icons.emoji_events_rounded,
-                color: AppTheme.accentGold, size: 24),
+            child: const Icon(Icons.workspace_premium_rounded,
+                color: Color(0xFF0A0E18), size: 26),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'TOURNAMENT PRIZE POOL',
+                'OFFICIAL PRIZE PURSE',
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.textMuted,
+                  color: AppTheme.goldMuted,
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 room.prizePool!,
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.accentGold,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  color: AppTheme.goldLight,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],

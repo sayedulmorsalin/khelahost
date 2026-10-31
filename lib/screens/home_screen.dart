@@ -325,64 +325,89 @@ class _HomeScreenState extends State<HomeScreen> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Row(
                   children: [
-                    // Brand Logo Icon
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(
-                        'assets/icon/app_icon.png',
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.cover,
+                    // Brand Logo Icon with subtle gold ring
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.gold.withValues(alpha: 0.4),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.asset(
+                          'assets/icon/app_icon.png',
+                          width: 36,
+                          height: 36,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Text(
-                              'Khela',
+                              'KHELA',
                               style: GoogleFonts.plusJakartaSans(
-                                color: AppTheme.textPrimary,
-                                fontSize: 17,
+                                color: Colors.white,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
+                                letterSpacing: 0.5,
                               ),
                             ),
                             Text(
-                              'Host',
+                              'HOST',
                               style: GoogleFonts.plusJakartaSans(
-                                color: AppTheme.primaryLight,
-                                fontSize: 17,
+                                color: AppTheme.gold,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ],
                         ),
-                        Text(
-                          'Tournament Platform',
-                          style: GoogleFonts.inter(
-                            color: AppTheme.textMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.workspace_premium_rounded,
+                              size: 11,
+                              color: AppTheme.gold,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              'VIP TOURNAMENT CLUB',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.goldMuted,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                     const Spacer(),
-                    // User Chip
+                    // User Chip with luxury border
                     GestureDetector(
                       onTap: () => _showAccountMenu(context),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                            horizontal: 11, vertical: 6),
                         decoration: BoxDecoration(
                           color: AppTheme.bgCard,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: AppTheme.cardBorder, width: 1.0),
+                            color: isGuest
+                                ? AppTheme.cardBorder
+                                : AppTheme.gold.withValues(alpha: 0.35),
+                            width: 1.0,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -403,19 +428,23 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Text(
                                 displayName,
                                 style: GoogleFonts.plusJakartaSans(
-                                  color: AppTheme.textPrimary,
+                                  color: isGuest
+                                      ? AppTheme.textPrimary
+                                      : AppTheme.goldLight,
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
+                            Icon(
                               Icons.keyboard_arrow_down_rounded,
                               size: 14,
-                              color: AppTheme.textMuted,
+                              color: isGuest
+                                  ? AppTheme.textMuted
+                                  : AppTheme.gold,
                             ),
                           ],
                         ),
@@ -426,36 +455,42 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Hero Arena Banner
+            // Luxury Executive VIP Arena Card
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(22),
                     color: AppTheme.bgCard,
                     gradient: const LinearGradient(
                       colors: [
-                        Color(0xFF162032),
-                        Color(0xFF101725),
+                        Color(0xFF162034),
+                        Color(0xFF0E1424),
+                        Color(0xFF060910),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     border: Border.all(
-                      color: AppTheme.cardBorder,
-                      width: 1.0,
+                      color: AppTheme.gold.withValues(alpha: 0.35),
+                      width: 1.2,
                     ),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x22000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
+                        color: AppTheme.gold.withValues(alpha: 0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 6),
+                      ),
+                      const BoxShadow(
+                        color: Color(0x60000000),
+                        blurRadius: 20,
+                        offset: Offset(0, 6),
                       ),
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(22),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -463,55 +498,78 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                  horizontal: 10, vertical: 4.5),
                               decoration: BoxDecoration(
-                                color: AppTheme.primary.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'TOURNAMENTS',
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: AppTheme.primaryLight,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.8,
+                                color: AppTheme.gold.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppTheme.gold.withValues(alpha: 0.45),
+                                  width: 0.9,
                                 ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.workspace_premium_rounded,
+                                      color: AppTheme.gold, size: 13),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    'VIP ARENA PASS',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: AppTheme.goldLight,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const Spacer(),
-                            const Icon(Icons.shield_outlined,
-                                size: 16, color: AppTheme.textMuted),
+                            Text(
+                              'OFFICIAL ESPORTS',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.goldMuted,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 14),
                         Text(
-                          'Host & Join Mobile Matches',
+                          'Executive Tournament Lounge',
                           style: GoogleFonts.plusJakartaSans(
-                            color: AppTheme.textPrimary,
-                            fontSize: 20,
+                            color: Colors.white,
+                            fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: -0.3,
+                            letterSpacing: -0.4,
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 6),
                         Text(
-                          'Organize competitive tournaments with automated room password reveals, participant rosters, and match schedules.',
+                          'Host exclusive tournament lobbies with automated room keys, verified host credentials, and real-time live participant tracking.',
                           style: GoogleFonts.inter(
                             color: AppTheme.textSecondary,
-                            fontSize: 12,
-                            height: 1.45,
+                            fontSize: 12.5,
+                            height: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: const [
                             _FeaturePill(
-                                icon: Icons.schedule_rounded,
-                                label: 'Scheduled Unlock'),
-                            const SizedBox(width: 8),
+                                icon: Icons.vpn_key_rounded,
+                                label: 'Automated Key Reveal'),
                             _FeaturePill(
-                                icon: Icons.verified_user_outlined,
-                                label: 'Verified Hosts'),
+                                icon: Icons.sports_esports_rounded,
+                                label: '8 Official Titles'),
+                            _FeaturePill(
+                                icon: Icons.military_tech_rounded,
+                                label: 'Verified VIP Hosts'),
                           ],
                         ),
                       ],
@@ -610,20 +668,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-            // Popular Esports Games Carousel
+            // Official Esports Titles Carousel
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 22, 20, 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Featured Games',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.workspace_premium_rounded,
+                            size: 16, color: AppTheme.gold),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Featured Titles',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
                     ),
                     GestureDetector(
                       onTap: () => Navigator.push(
@@ -631,9 +697,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Text(
                         'View All',
                         style: GoogleFonts.plusJakartaSans(
-                          color: AppTheme.primaryLight,
+                          color: AppTheme.gold,
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -645,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Real Game Icon Cards Carousel
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 102,
+                height: 126,
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   scrollDirection: Axis.horizontal,
@@ -868,26 +934,26 @@ class _FeaturePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(6),
+        color: const Color(0xFF0F1524),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFF334155),
+          color: AppTheme.cardBorderGold,
           width: 0.8,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: AppTheme.primaryLight),
+          Icon(icon, size: 12, color: AppTheme.gold),
           const SizedBox(width: 5),
           Text(
             label,
             style: GoogleFonts.plusJakartaSans(
-              color: AppTheme.textSecondary,
+              color: AppTheme.goldLight,
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -917,23 +983,38 @@ class _ActionCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          height: 124,
+          height: 130,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isPrimary ? AppTheme.primary : AppTheme.bgCard,
-            borderRadius: BorderRadius.circular(16),
+            gradient: isPrimary
+                ? AppTheme.goldButtonGradient
+                : const LinearGradient(
+                    colors: [Color(0xFF131B2A), Color(0xFF070B13)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isPrimary ? AppTheme.primaryLight : AppTheme.cardBorder,
-              width: 1.0,
+              color: isPrimary
+                  ? const Color(0xFFFFF1D0)
+                  : AppTheme.cardBorderGold,
+              width: 1.2,
             ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 10,
-                offset: Offset(0, 3),
-              ),
+            boxShadow: [
+              if (isPrimary)
+                BoxShadow(
+                  color: AppTheme.gold.withValues(alpha: 0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 5),
+                )
+              else
+                const BoxShadow(
+                  color: Color(0x40000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
             ],
           ),
           child: Column(
@@ -944,23 +1025,44 @@ class _ActionCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
                       color: isPrimary
-                          ? Colors.white.withValues(alpha: 0.18)
-                          : AppTheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                          ? const Color(0xFF0A0E18)
+                          : AppTheme.gold.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isPrimary
+                            ? AppTheme.gold
+                            : AppTheme.gold.withValues(alpha: 0.3),
+                        width: 0.8,
+                      ),
                     ),
                     child: Icon(
                       icon,
-                      color: isPrimary ? Colors.white : AppTheme.primaryLight,
+                      color: isPrimary ? AppTheme.gold : AppTheme.goldLight,
                       size: 20,
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_outward_rounded,
-                    size: 16,
-                    color: isPrimary ? Colors.white70 : AppTheme.textMuted,
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isPrimary
+                          ? const Color(0xFF0A0E18).withValues(alpha: 0.85)
+                          : AppTheme.bgSurface,
+                      border: Border.all(
+                        color: isPrimary
+                            ? AppTheme.gold.withValues(alpha: 0.5)
+                            : AppTheme.cardBorderGold,
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.arrow_outward_rounded,
+                      size: 13,
+                      color: isPrimary ? AppTheme.gold : AppTheme.goldLight,
+                    ),
                   ),
                 ],
               ),
@@ -970,19 +1072,21 @@ class _ActionCard extends StatelessWidget {
                   Text(
                     title,
                     style: GoogleFonts.plusJakartaSans(
-                      color: Colors.white,
+                      color: isPrimary ? const Color(0xFF070A10) : Colors.white,
                       fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle,
                     style: GoogleFonts.inter(
                       color: isPrimary
-                          ? Colors.white.withValues(alpha: 0.8)
+                          ? const Color(0xFF2A2312)
                           : AppTheme.textMuted,
                       fontSize: 11,
+                      fontWeight: isPrimary ? FontWeight.w600 : FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1012,30 +1116,63 @@ class _GameCategoryCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
-          width: 105,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          width: 112,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
           decoration: BoxDecoration(
             color: AppTheme.bgCard,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.cardBorder, width: 1.0),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF111726), Color(0xFF080C14)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppTheme.cardBorderGold,
+              width: 1.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x35000000),
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GameIconWidget(game: name, size: 42, borderRadius: 10),
+              GameIconWidget(game: name, size: 50, borderRadius: 12),
               const SizedBox(height: 8),
               Text(
                 name,
                 style: GoogleFonts.plusJakartaSans(
                   color: AppTheme.textPrimary,
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: AppTheme.gold.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'PRO LEAGUE',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.gold,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
             ],
           ),
@@ -1056,78 +1193,153 @@ class _LiveTournamentCard extends StatelessWidget {
     final isFull = room.players.length >= room.maxPlayers;
     final isStarted = room.status == 'started';
     final timeStr = DateFormat('hh:mm a • MMM dd').format(room.startTime);
+    final fillRatio = (room.players.length / room.maxPlayers).clamp(0.0, 1.0);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: AppTheme.glassCard(
-        borderColor: isStarted ? AppTheme.accentGreen : AppTheme.cardBorder,
-        borderRadius: 14,
+        borderColor: isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold,
+        isGold: isStarted,
+        borderRadius: 18,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    GameIconWidget(game: room.game, size: 22, borderRadius: 5),
-                    const SizedBox(width: 8),
-                    Text(
-                      room.game,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    GameIconWidget(game: room.game, size: 40, borderRadius: 10),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            room.name,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(
+                                room.game,
+                                style: GoogleFonts.inter(
+                                  color: AppTheme.goldLight,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 3,
+                                height: 3,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'OFFICIAL LOBBY',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: AppTheme.textMuted,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2.5),
+                          horizontal: 8, vertical: 3.5),
                       decoration: BoxDecoration(
                         color: (isStarted
                                 ? AppTheme.accentGreen
                                 : (isFull
                                     ? AppTheme.accentRed
-                                    : AppTheme.primary))
-                            .withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Text(
-                        isStarted ? 'LIVE' : (isFull ? 'FULL' : 'OPEN'),
-                        style: GoogleFonts.plusJakartaSans(
-                          color: isStarted
-                              ? AppTheme.accentGreen
-                              : (isFull
-                                  ? AppTheme.accentRed
-                                  : AppTheme.primaryLight),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
+                                    : AppTheme.gold))
+                            .withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: (isStarted
+                                  ? AppTheme.accentGreen
+                                  : (isFull
+                                      ? AppTheme.accentRed
+                                      : AppTheme.gold))
+                              .withValues(alpha: 0.35),
+                          width: 0.8,
                         ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isStarted) ...[
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppTheme.accentGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            isStarted ? 'LIVE' : (isFull ? 'FULL' : 'OPEN'),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: isStarted
+                                  ? AppTheme.accentGreen
+                                  : (isFull
+                                      ? AppTheme.accentRed
+                                      : AppTheme.goldLight),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  room.name,
-                  style: GoogleFonts.plusJakartaSans(
-                    color: AppTheme.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: fillRatio,
+                    minHeight: 4,
+                    backgroundColor: AppTheme.bgSurface,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isFull
+                          ? AppTheme.accentRed
+                          : (fillRatio > 0.8
+                              ? AppTheme.gold
+                              : AppTheme.goldDark),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.schedule_rounded,
+                    const Icon(Icons.access_time_rounded,
                         size: 13, color: AppTheme.textMuted),
                     const SizedBox(width: 4),
                     Text(
@@ -1137,12 +1349,43 @@ class _LiveTournamentCard extends StatelessWidget {
                         fontSize: 11,
                       ),
                     ),
+                    if (room.prizePool != null && room.prizePool!.isNotEmpty) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2.5),
+                        decoration: BoxDecoration(
+                          color: AppTheme.gold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(
+                            color: AppTheme.gold.withValues(alpha: 0.3),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.emoji_events_rounded,
+                                color: AppTheme.gold, size: 12),
+                            const SizedBox(width: 4),
+                            Text(
+                              room.prizePool!,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.goldLight,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const Spacer(),
-                    Icon(Icons.people_alt_outlined,
+                    const Icon(Icons.people_alt_outlined,
                         size: 13, color: AppTheme.textMuted),
                     const SizedBox(width: 4),
                     Text(
-                      '${room.players.length}/${room.maxPlayers}',
+                      '${room.players.length} / ${room.maxPlayers}',
                       style: GoogleFonts.plusJakartaSans(
                         color: AppTheme.textPrimary,
                         fontSize: 11,

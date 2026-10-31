@@ -37,7 +37,19 @@ class PlayerListTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.bgSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.cardBorder, width: 1),
+        border: Border.all(
+          color: isPlayerTheHost ? AppTheme.cardBorderGold : AppTheme.cardBorder,
+          width: isPlayerTheHost ? 1.3 : 1,
+        ),
+        boxShadow: isPlayerTheHost
+            ? [
+                BoxShadow(
+                  color: AppTheme.primary.withValues(alpha: 0.12),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: Row(
         children: [
@@ -47,14 +59,22 @@ class PlayerListTile extends StatelessWidget {
             height: 38,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: gradient,
+              gradient: isPlayerTheHost ? AppTheme.goldButtonGradient : gradient,
+              boxShadow: isPlayerTheHost
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
             ),
             alignment: Alignment.center,
             child: Text(
               player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+                color: isPlayerTheHost ? const Color(0xFF070A10) : Colors.white,
+                fontWeight: FontWeight.w800,
                 fontSize: 15,
               ),
             ),
@@ -118,12 +138,18 @@ class PlayerListTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.bgCard,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppTheme.divider),
+              border: Border.all(
+                color: isPlayerTheHost
+                    ? AppTheme.cardBorderGold
+                    : AppTheme.divider,
+              ),
             ),
             child: Text(
               '#${index + 1}',
               style: GoogleFonts.plusJakartaSans(
-                color: AppTheme.textSecondary,
+                color: isPlayerTheHost
+                    ? AppTheme.primaryLight
+                    : AppTheme.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),

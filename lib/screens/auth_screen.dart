@@ -162,16 +162,19 @@ class _AuthScreenState extends State<AuthScreen>
                       child: Column(
                         children: [
                           Container(
-                            width: 76,
-                            height: 76,
+                            width: 80,
+                            height: 80,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
+                                color: AppTheme.primaryLight.withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color:
-                                      AppTheme.primary.withValues(alpha: 0.35),
-                                  blurRadius: 24,
-                                  offset: const Offset(0, 6),
+                                  color: AppTheme.primary.withValues(alpha: 0.35),
+                                  blurRadius: 28,
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
                             ),
@@ -190,41 +193,67 @@ class _AuthScreenState extends State<AuthScreen>
                               Text(
                                 'KHELA',
                                 style: GoogleFonts.plusJakartaSans(
-                                  color: AppTheme.textPrimary,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
                                 ),
                               ),
                               Text(
                                 'HOST',
                                 style: GoogleFonts.plusJakartaSans(
-                                  color: AppTheme.accent,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
+                                  color: AppTheme.primary,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Esports Tournament Management Platform',
-                            style: GoogleFonts.inter(
-                              color: AppTheme.textMuted,
-                              fontSize: 12,
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppTheme.cardBorderGold,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.workspace_premium_rounded,
+                                    color: AppTheme.primary, size: 13),
+                                const SizedBox(width: 5),
+                                Text(
+                                  'PREMIER VIP ESPORTS ARENA',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: AppTheme.primaryLight,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
                     // Auth Card
                     Container(
-                      decoration: AppTheme.glassCard(borderRadius: 20),
-                      padding: const EdgeInsets.all(22),
+                      decoration: AppTheme.glassCard(
+                        borderRadius: 24,
+                        isGold: true,
+                        borderColor: AppTheme.cardBorderGold,
+                      ),
+                      padding: const EdgeInsets.all(24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -234,7 +263,7 @@ class _AuthScreenState extends State<AuthScreen>
                             decoration: BoxDecoration(
                               color: AppTheme.bgSurface,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppTheme.divider),
+                              border: Border.all(color: AppTheme.cardBorderGold),
                             ),
                             child: Row(
                               children: [
@@ -370,33 +399,55 @@ class _AuthScreenState extends State<AuthScreen>
                                     ),
                                   ),
                                 )
-                              : ElevatedButton(
-                                  onPressed: _submit,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primary,
-                                    minimumSize: const Size(double.infinity, 50),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        _isLogin
-                                            ? Icons.login_rounded
-                                            : Icons.person_add_rounded,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _isLogin ? 'Sign In' : 'Create Account',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 15,
-                                        ),
+                              : Container(
+                                  width: double.infinity,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    gradient: AppTheme.goldButtonGradient,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.primary
+                                            .withValues(alpha: 0.35),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
                                       ),
                                     ],
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: _submit,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          _isLogin
+                                              ? Icons.login_rounded
+                                              : Icons.workspace_premium_rounded,
+                                          size: 19,
+                                          color: const Color(0xFF070A10),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _isLogin
+                                              ? 'Sign In to Arena'
+                                              : 'Join VIP Arena',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: const Color(0xFF070A10),
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15,
+                                            letterSpacing: 0.4,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                         ],
@@ -432,19 +483,19 @@ class _AuthScreenState extends State<AuthScreen>
                         : OutlinedButton.icon(
                             onPressed: _continueAsGuest,
                             icon: const Icon(Icons.person_outline_rounded,
-                                size: 18),
+                                size: 18, color: AppTheme.primaryLight),
                             label: const Text('Continue as Guest'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.textSecondary,
+                              foregroundColor: AppTheme.textPrimary,
                               side: const BorderSide(
-                                  color: AppTheme.cardBorder, width: 1.2),
+                                  color: AppTheme.cardBorderGold, width: 1.2),
                               minimumSize: const Size(double.infinity, 50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               textStyle: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -511,15 +562,25 @@ class _ModeTab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            gradient: selected ? AppTheme.primaryGradient : null,
+            gradient: selected ? AppTheme.goldButtonGradient : null,
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
-              color: selected ? Colors.white : AppTheme.textMuted,
+              color: selected ? const Color(0xFF070A10) : AppTheme.textMuted,
               fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.3,
             ),
           ),
         ),

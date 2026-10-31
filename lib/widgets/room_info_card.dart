@@ -603,11 +603,13 @@ class _RoomInfoCardState extends State<RoomInfoCard> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => _share(room),
-              icon: const Icon(Icons.share_outlined, size: 18),
+              icon: const Icon(Icons.share_outlined,
+                  size: 18, color: AppTheme.primaryLight),
               label: const Text('Share Room Details'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.textPrimary,
-                side: const BorderSide(color: AppTheme.cardBorder, width: 1.2),
+                side:
+                    const BorderSide(color: AppTheme.cardBorderGold, width: 1.2),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

@@ -394,7 +394,7 @@ class _HostRoomCard extends StatelessWidget {
         ? AppTheme.accentRed
         : isStarted
             ? AppTheme.accentGreen
-            : AppTheme.primaryLight;
+            : AppTheme.goldLight;
     final statusLabel =
         isClosed ? 'CLOSED' : (isStarted ? 'LIVE NOW' : 'WAITING');
 
@@ -402,6 +402,7 @@ class _HostRoomCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: AppTheme.glassCard(
         borderColor: statusColor,
+        isGold: isStarted || !isClosed,
         borderRadius: 18,
       ),
       child: Material(
@@ -426,7 +427,7 @@ class _HostRoomCard extends StatelessWidget {
                     // Game badge
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppTheme.bgSurface,
                         borderRadius: BorderRadius.circular(8),
@@ -434,8 +435,8 @@ class _HostRoomCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          GameIconWidget(game: room.game, size: 16, borderRadius: 3),
-                          const SizedBox(width: 5),
+                          GameIconWidget(game: room.game, size: 22, borderRadius: 5),
+                          const SizedBox(width: 7),
                           Text(
                             room.game,
                             style: GoogleFonts.plusJakartaSans(

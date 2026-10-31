@@ -144,27 +144,31 @@ class _JoinScreenState extends State<JoinScreen> {
                           Icon(
                             Icons.grid_view_rounded,
                             size: 14,
-                            color: selected ? Colors.white : AppTheme.textSecondary,
+                            color: selected
+                                ? const Color(0xFF070A10)
+                                : AppTheme.goldLight,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             'All Games',
                             style: GoogleFonts.plusJakartaSans(
-                              color: selected ? Colors.white : AppTheme.textSecondary,
-                              fontWeight:
-                                  selected ? FontWeight.w700 : FontWeight.w600,
+                              color: selected
+                                  ? const Color(0xFF070A10)
+                                  : AppTheme.textPrimary,
+                              fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
                           ),
                         ] else ...[
-                          GameIconWidget(game: cat, size: 16, borderRadius: 3),
-                          const SizedBox(width: 6),
+                          GameIconWidget(game: cat, size: 18, borderRadius: 4),
+                          const SizedBox(width: 7),
                           Text(
                             cat,
                             style: GoogleFonts.plusJakartaSans(
-                              color: selected ? Colors.white : AppTheme.textSecondary,
-                              fontWeight:
-                                  selected ? FontWeight.w700 : FontWeight.w600,
+                              color: selected
+                                  ? const Color(0xFF070A10)
+                                  : AppTheme.textPrimary,
+                              fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
                           ),
@@ -172,11 +176,13 @@ class _JoinScreenState extends State<JoinScreen> {
                       ],
                     ),
                     backgroundColor: AppTheme.bgCard,
-                    selectedColor: AppTheme.primary,
+                    selectedColor: AppTheme.gold,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 2),
                     side: BorderSide(
-                      color: selected ? AppTheme.primary : AppTheme.cardBorder,
+                      color: selected
+                          ? AppTheme.gold
+                          : AppTheme.cardBorderGold,
                       width: 1.2,
                     ),
                     shape: RoundedRectangleBorder(
@@ -330,7 +336,8 @@ class _TournamentCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: AppTheme.glassCard(
-        borderColor: isStarted ? AppTheme.accentGreen : AppTheme.cardBorder,
+        borderColor: isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold,
+        isGold: isStarted,
         borderRadius: 18,
       ),
       child: Material(
@@ -355,7 +362,7 @@ class _TournamentCard extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                          horizontal: 9, vertical: 5),
                       decoration: BoxDecoration(
                         color: AppTheme.bgSurface,
                         borderRadius: BorderRadius.circular(8),
@@ -364,7 +371,7 @@ class _TournamentCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          GameIconWidget(game: room.game, size: 18, borderRadius: 4),
+                          GameIconWidget(game: room.game, size: 22, borderRadius: 5),
                           const SizedBox(width: 8),
                           Text(
                             room.game,
@@ -592,17 +599,17 @@ class _TournamentCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          'Enter Room',
+                          'Enter Arena',
                           style: GoogleFonts.plusJakartaSans(
-                            color: AppTheme.primaryLight,
-                            fontWeight: FontWeight.w700,
+                            color: AppTheme.gold,
+                            fontWeight: FontWeight.w800,
                             fontSize: 13,
                           ),
                         ),
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.arrow_forward_rounded,
-                          color: AppTheme.primaryLight,
+                          color: AppTheme.gold,
                           size: 14,
                         ),
                       ],

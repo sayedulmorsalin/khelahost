@@ -353,7 +353,7 @@ class _HostScreenState extends State<HostScreen> {
                         color: AppTheme.bgCard,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: AppTheme.cardBorder, width: 1.2),
+                            color: AppTheme.cardBorderGold, width: 1.2),
                       ),
                       child: const Icon(
                         Icons.arrow_back_ios_new_rounded,
@@ -376,9 +376,9 @@ class _HostScreenState extends State<HostScreen> {
                         ),
                       ),
                       Text(
-                        'Set up your game match room',
+                        'Launch your official executive match room',
                         style: GoogleFonts.inter(
-                          color: AppTheme.textMuted,
+                          color: AppTheme.goldMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -920,40 +920,57 @@ class _HostScreenState extends State<HostScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Submit Button
-                      ElevatedButton(
-                        onPressed: _loading ? null : _createRoom,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          minimumSize: const Size(double.infinity, 54),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.goldButtonGradient,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.gold.withValues(alpha: 0.35),
+                              blurRadius: 18,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _loading ? null : _createRoom,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Center(
+                              child: _loading
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF090C12),
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.workspace_premium_rounded,
+                                          color: Color(0xFF080C14),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Launch VIP Tournament',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: const Color(0xFF080C14),
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
                           ),
                         ),
-                        child: _loading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.rocket_launch_rounded,
-                                      size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Create Tournament Room',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
                       ),
 
                       const SizedBox(height: 36),
@@ -974,19 +991,22 @@ class _HostScreenState extends State<HostScreen> {
     required List<Widget> children,
   }) {
     return Container(
-      decoration: AppTheme.glassCard(borderRadius: 18),
+      decoration: AppTheme.glassCard(
+        borderRadius: 18,
+        borderColor: AppTheme.cardBorderGold,
+      ),
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: AppTheme.primaryLight, size: 16),
+              Icon(icon, color: AppTheme.gold, size: 16),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.goldLight,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.8,

@@ -58,8 +58,10 @@ class _CountdownWidgetState extends State<CountdownWidget> {
 
     return Container(
       decoration: AppTheme.glassCard(
-        borderColor: _isStarted ? AppTheme.accentGreen : AppTheme.cardBorder,
+        borderColor:
+            _isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold,
         borderRadius: 20,
+        isGold: !_isStarted,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Column(
@@ -193,17 +195,24 @@ class _TimeUnit extends StatelessWidget {
             color: AppTheme.bgSurface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isHighlight
-                  ? AppTheme.primaryLight.withValues(alpha: 0.4)
-                  : AppTheme.cardBorder,
+              color: isHighlight ? AppTheme.primary : AppTheme.cardBorderGold,
               width: 1.2,
             ),
+            boxShadow: isHighlight
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           alignment: Alignment.center,
           child: Text(
             value,
             style: GoogleFonts.plusJakartaSans(
-              color: isHighlight ? AppTheme.accent : AppTheme.textPrimary,
+              color: isHighlight ? AppTheme.primary : AppTheme.textPrimary,
               fontSize: 22,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
