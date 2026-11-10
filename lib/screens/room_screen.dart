@@ -9,6 +9,7 @@ import 'package:khelahost/services/room_service.dart';
 import 'package:khelahost/widgets/countdown_widget.dart';
 import 'package:khelahost/widgets/player_list_tile.dart';
 import 'package:khelahost/widgets/room_info_card.dart';
+import 'package:khelahost/widgets/winner_claims_list.dart';
 
 class RoomScreen extends StatefulWidget {
   final String docId;
@@ -95,6 +96,90 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _completeMatch(TournamentRoom room) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.bgCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppTheme.cardBorder),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.emoji_events_rounded,
+                color: AppTheme.gold, size: 24),
+            const SizedBox(width: 10),
+            Text(
+              'Complete Match?',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This will conclude the game. Participants can then upload their winner victory screenshot and phone number to claim the prize.',
+          style: GoogleFonts.inter(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.plusJakartaSans(color: AppTheme.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.gold,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              'Complete Match',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      await _service.completeMatch(room.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.emoji_events_rounded,
+                    color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                      'Match marked completed! Winner claims are now open.'),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.accentGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _removePlayer(TournamentRoom room, Player player) async {
     await _service.removePlayer(room.id, player);
     if (mounted) {
@@ -132,11 +217,75 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
           final room = snapshot.data!;
           final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
           final isHost = room.hostId == uid || widget.isHost;
-          if (room.status == 'closed' && !isHost) {
+          final isParticipant = room.players.any((p) => p.uid == uid);
+          if (room.status == 'closed' && !isHost && !isParticipant) {
             return _buildClosed();
           }
           return _buildRoom(room, isHost);
         },
+      ),
+    );
+  }
+
+  Widget _buildMatchCompletedBanner(TournamentRoom room) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.gold.withValues(alpha: 0.22),
+            AppTheme.bgCard,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.gold.withValues(alpha: 0.6),
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.gold.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: AppTheme.gold,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'MATCH COMPLETED',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.goldLight,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'The tournament has ended! Winners can upload screenshot proof and their payout phone number below.',
+                  style: GoogleFonts.inter(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -166,6 +315,24 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                   // Countdown
                   CountdownWidget(targetTime: room.startTime, room: room),
                   const SizedBox(height: 16),
+
+                  // Match Completed Banner (when status == 'completed')
+                  if (room.status == 'completed') ...[
+                    _buildMatchCompletedBanner(room),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Winner Claim & Payment Proof Section (for Host & Participants)
+                  if (room.status == 'completed' ||
+                      room.status == 'started' ||
+                      room.status == 'closed') ...[
+                    WinnerClaimsSection(
+                      room: room,
+                      uid: uid,
+                      isHost: isHost,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Room credentials pass
                   RoomInfoCard(
@@ -326,7 +493,9 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
                 Text(
                   room.status == 'started'
                       ? 'LIVE'
-                      : (room.status == 'waiting' ? 'SCHEDULED' : 'CLOSED'),
+                      : (room.status == 'completed'
+                          ? 'COMPLETED'
+                          : (room.status == 'waiting' ? 'SCHEDULED' : 'CLOSED')),
                   style: GoogleFonts.plusJakartaSans(
                     color: _statusColor(room.status),
                     fontSize: 10,
@@ -560,65 +729,115 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildHostControls(TournamentRoom room) {
+    final isStarted = room.status == 'started';
+    final isCompleted = room.status == 'completed';
+
     return Column(
       children: [
         // Set / Edit Credentials button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _showEditCredentialsSheet(room),
-            icon: Icon(
-              room.hasCredentials ? Icons.edit_rounded : Icons.vpn_key_rounded,
-              size: 16,
-            ),
-            label: Text(
-              room.hasCredentials
-                  ? 'Edit Room ID & Password'
-                  : 'Set Room ID & Password',
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.accentGold,
-              side: const BorderSide(color: AppTheme.accentGold, width: 1.2),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              textStyle: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
+        if (!isCompleted) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showEditCredentialsSheet(room),
+              icon: Icon(
+                room.hasCredentials ? Icons.edit_rounded : Icons.vpn_key_rounded,
+                size: 16,
+              ),
+              label: Text(
+                room.hasCredentials
+                    ? 'Edit Room ID & Password'
+                    : 'Set Room ID & Password',
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.accentGold,
+                side: const BorderSide(color: AppTheme.accentGold, width: 1.2),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                textStyle: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _service.updateStatus(
-                  room.id,
-                  room.status == 'started' ? 'waiting' : 'started',
-                ),
-                icon: Icon(
-                  room.status == 'started'
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
-                  size: 18,
-                ),
-                label: Text(room.status == 'started'
-                    ? 'Pause Match'
-                    : 'Start Match'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  textStyle: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
+          const SizedBox(height: 10),
+        ],
+
+        // Complete match button when match is started
+        if (isStarted) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _completeMatch(room),
+              icon: const Icon(Icons.emoji_events_rounded, size: 18),
+              label: const Text('Complete Match & Open Winner Claims'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.gold,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                textStyle: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13.5,
                 ),
               ),
             ),
+          ),
+          const SizedBox(height: 10),
+        ],
+
+        Row(
+          children: [
+            if (!isCompleted)
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _service.updateStatus(
+                    room.id,
+                    isStarted ? 'waiting' : 'started',
+                  ),
+                  icon: Icon(
+                    isStarted
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    size: 18,
+                  ),
+                  label: Text(isStarted
+                      ? 'Pause Match'
+                      : 'Start Match'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    textStyle: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _service.updateStatus(room.id, 'started'),
+                  icon: const Icon(Icons.replay_rounded, size: 16),
+                  label: const Text('Resume Match'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                    side: const BorderSide(color: AppTheme.cardBorder),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    textStyle: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
@@ -1274,6 +1493,8 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
     switch (status) {
       case 'started':
         return AppTheme.accentGreen;
+      case 'completed':
+        return AppTheme.gold;
       case 'closed':
         return AppTheme.accentRed;
       default:

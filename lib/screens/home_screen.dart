@@ -1192,14 +1192,17 @@ class _LiveTournamentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFull = room.players.length >= room.maxPlayers;
     final isStarted = room.status == 'started';
+    final isCompleted = room.status == 'completed';
     final timeStr = DateFormat('hh:mm a • MMM dd').format(room.startTime);
     final fillRatio = (room.players.length / room.maxPlayers).clamp(0.0, 1.0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: AppTheme.glassCard(
-        borderColor: isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold,
-        isGold: isStarted,
+        borderColor: isCompleted
+            ? AppTheme.gold
+            : (isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold),
+        isGold: isCompleted || isStarted,
         borderRadius: 18,
       ),
       child: Material(
@@ -1271,19 +1274,23 @@ class _LiveTournamentCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3.5),
                       decoration: BoxDecoration(
-                        color: (isStarted
-                                ? AppTheme.accentGreen
-                                : (isFull
-                                    ? AppTheme.accentRed
-                                    : AppTheme.gold))
+                        color: (isCompleted
+                                ? AppTheme.gold
+                                : (isStarted
+                                    ? AppTheme.accentGreen
+                                    : (isFull
+                                        ? AppTheme.accentRed
+                                        : AppTheme.gold)))
                             .withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: (isStarted
-                                  ? AppTheme.accentGreen
-                                  : (isFull
-                                      ? AppTheme.accentRed
-                                      : AppTheme.gold))
+                          color: (isCompleted
+                                  ? AppTheme.gold
+                                  : (isStarted
+                                      ? AppTheme.accentGreen
+                                      : (isFull
+                                          ? AppTheme.accentRed
+                                          : AppTheme.gold)))
                               .withValues(alpha: 0.35),
                           width: 0.8,
                         ),
@@ -1291,7 +1298,11 @@ class _LiveTournamentCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (isStarted) ...[
+                          if (isCompleted) ...[
+                            const Icon(Icons.emoji_events_rounded,
+                                color: AppTheme.gold, size: 12),
+                            const SizedBox(width: 4),
+                          ] else if (isStarted) ...[
                             Container(
                               width: 5,
                               height: 5,
@@ -1303,13 +1314,19 @@ class _LiveTournamentCard extends StatelessWidget {
                             const SizedBox(width: 4),
                           ],
                           Text(
-                            isStarted ? 'LIVE' : (isFull ? 'FULL' : 'OPEN'),
+                            isCompleted
+                                ? 'FINISHED'
+                                : (isStarted
+                                    ? 'LIVE'
+                                    : (isFull ? 'FULL' : 'OPEN')),
                             style: GoogleFonts.plusJakartaSans(
-                              color: isStarted
-                                  ? AppTheme.accentGreen
-                                  : (isFull
-                                      ? AppTheme.accentRed
-                                      : AppTheme.goldLight),
+                              color: isCompleted
+                                  ? AppTheme.goldLight
+                                  : (isStarted
+                                      ? AppTheme.accentGreen
+                                      : (isFull
+                                          ? AppTheme.accentRed
+                                          : AppTheme.goldLight)),
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,

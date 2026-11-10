@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:khelahost/models/tournament_room.dart';
+import 'package:khelahost/models/winner_claim.dart';
 
 class RoomService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -67,6 +68,74 @@ class RoomService {
   // Close/delete a room
   Future<void> closeRoom(String docId) async {
     await _db.collection(_collection).doc(docId).update({'status': 'closed'});
+  }
+
+  // Mark room match as completed
+  Future<void> completeMatch(String docId) async {
+    await _db.collection(_collection).doc(docId).update({'status': 'completed'});
+  }
+
+  // Submit or update winner claim
+  Future<void> submitWinnerClaim(String docId, WinnerClaim claim) async {
+    await _db
+        .collection(_collection)
+        .doc(docId)
+        .collection('claims')
+        .doc(claim.playerUid)
+        .set(claim.toMap(), SetOptions(merge: true));
+  }
+
+  // Stream all winner claims for a room
+  Stream<List<WinnerClaim>> streamWinnerClaims(String docId) {
+    return _db
+        .collection(_collection)
+        .doc(docId)
+        .collection('claims')
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs
+          .map(WinnerClaim.fromDocSafe)
+          .whereType<WinnerClaim>()
+          .toList();
+      list.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+      return list;
+    });
+  }
+
+  // Stream current player's claim for a room
+  Stream<WinnerClaim?> streamPlayerClaim(String docId, String playerUid) {
+    return _db
+        .collection(_collection)
+        .doc(docId)
+        .collection('claims')
+        .doc(playerUid)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) return null;
+      return WinnerClaim.fromDocSafe(doc);
+    });
+  }
+
+  // Update claim status (e.g. approve/paid, reject)
+  Future<void> updateClaimStatus(
+    String docId,
+    String claimPlayerUid,
+    String status, {
+    String? hostComment,
+  }) async {
+    final Map<String, dynamic> updates = {
+      'status': status,
+      'reviewedAt': Timestamp.now(),
+    };
+    if (hostComment != null) {
+      updates['hostComment'] = hostComment;
+    }
+    await _db
+        .collection(_collection)
+        .doc(docId)
+        .collection('claims')
+        .doc(claimPlayerUid)
+        .update(updates);
   }
 
   // Stream all public active rooms

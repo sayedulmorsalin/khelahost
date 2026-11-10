@@ -58,10 +58,11 @@ class _CountdownWidgetState extends State<CountdownWidget> {
 
     return Container(
       decoration: AppTheme.glassCard(
-        borderColor:
-            _isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold,
+        borderColor: widget.room.isCompleted
+            ? AppTheme.gold
+            : (_isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold),
         borderRadius: 20,
-        isGold: !_isStarted,
+        isGold: widget.room.isCompleted || !_isStarted,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Column(
@@ -77,13 +78,16 @@ class _CountdownWidgetState extends State<CountdownWidget> {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color:
-                          _isStarted ? AppTheme.accentGreen : AppTheme.accentGold,
+                      color: widget.room.isCompleted
+                          ? AppTheme.gold
+                          : (_isStarted ? AppTheme.accentGreen : AppTheme.accentGold),
                       boxShadow: [
                         BoxShadow(
-                          color: (_isStarted
-                                  ? AppTheme.accentGreen
-                                  : AppTheme.accentGold)
+                          color: (widget.room.isCompleted
+                                  ? AppTheme.gold
+                                  : (_isStarted
+                                      ? AppTheme.accentGreen
+                                      : AppTheme.accentGold))
                               .withValues(alpha: 0.6),
                           blurRadius: 8,
                           spreadRadius: 1,
@@ -93,11 +97,15 @@ class _CountdownWidgetState extends State<CountdownWidget> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _isStarted ? 'MATCH IN PROGRESS' : 'MATCH COUNTDOWN',
+                    widget.room.isCompleted
+                        ? 'MATCH COMPLETED'
+                        : (_isStarted ? 'MATCH IN PROGRESS' : 'MATCH COUNTDOWN'),
                     style: GoogleFonts.plusJakartaSans(
-                      color: _isStarted
-                          ? AppTheme.accentGreen
-                          : AppTheme.textSecondary,
+                      color: widget.room.isCompleted
+                          ? AppTheme.goldLight
+                          : (_isStarted
+                              ? AppTheme.accentGreen
+                              : AppTheme.textSecondary),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.0,
@@ -109,18 +117,24 @@ class _CountdownWidgetState extends State<CountdownWidget> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: (_isStarted
-                          ? AppTheme.accentGreen
-                          : AppTheme.primary)
+                  color: (widget.room.isCompleted
+                          ? AppTheme.gold
+                          : (_isStarted
+                              ? AppTheme.accentGreen
+                              : AppTheme.primary))
                       .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  _isStarted ? 'LIVE' : 'UPCOMING',
+                  widget.room.isCompleted
+                      ? 'CONCLUDED'
+                      : (_isStarted ? 'LIVE' : 'UPCOMING'),
                   style: GoogleFonts.plusJakartaSans(
-                    color: _isStarted
-                        ? AppTheme.accentGreen
-                        : AppTheme.primaryLight,
+                    color: widget.room.isCompleted
+                        ? AppTheme.goldLight
+                        : (_isStarted
+                            ? AppTheme.accentGreen
+                            : AppTheme.primaryLight),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
@@ -132,7 +146,28 @@ class _CountdownWidgetState extends State<CountdownWidget> {
 
           const SizedBox(height: 18),
 
-          if (_isStarted)
+          if (widget.room.isCompleted)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.emoji_events_rounded,
+                      color: AppTheme.gold, size: 28),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Match Concluded',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (_isStarted)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16),
               alignment: Alignment.center,

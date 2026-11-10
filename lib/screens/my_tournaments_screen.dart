@@ -220,7 +220,7 @@ class _MyTournamentsScreenState extends State<MyTournamentsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
-                children: ['All', 'Active', 'Closed'].map((tab) {
+                children: ['All', 'Active', 'Completed', 'Closed'].map((tab) {
                   final isSelected = _activeTab == tab;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -230,7 +230,11 @@ class _MyTournamentsScreenState extends State<MyTournamentsScreen> {
                       label: Text(
                         tab == 'All'
                             ? 'All Rooms'
-                            : (tab == 'Active' ? 'Active / Upcoming' : 'Closed'),
+                            : (tab == 'Active'
+                                ? 'Active'
+                                : (tab == 'Completed'
+                                    ? 'Completed'
+                                    : 'Closed')),
                         style: GoogleFonts.plusJakartaSans(
                           color:
                               isSelected ? Colors.white : AppTheme.textSecondary,
@@ -287,7 +291,10 @@ class _MyTournamentsScreenState extends State<MyTournamentsScreen> {
                   final allRooms = snapshot.data ?? [];
                   final rooms = allRooms.where((room) {
                     if (_activeTab == 'Active') {
-                      return room.status != 'closed';
+                      return room.status == 'waiting' || room.status == 'started';
+                    }
+                    if (_activeTab == 'Completed') {
+                      return room.status == 'completed';
                     }
                     if (_activeTab == 'Closed') {
                       return room.status == 'closed';
@@ -387,16 +394,22 @@ class _HostRoomCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isClosed = room.status == 'closed';
+    final isCompleted = room.status == 'completed';
     final isStarted = room.status == 'started';
     final startTimeStr =
         DateFormat('EEE, MMM dd • hh:mm a').format(room.startTime);
     final statusColor = isClosed
         ? AppTheme.accentRed
-        : isStarted
-            ? AppTheme.accentGreen
-            : AppTheme.goldLight;
-    final statusLabel =
-        isClosed ? 'CLOSED' : (isStarted ? 'LIVE NOW' : 'WAITING');
+        : isCompleted
+            ? AppTheme.gold
+            : isStarted
+                ? AppTheme.accentGreen
+                : AppTheme.goldLight;
+    final statusLabel = isClosed
+        ? 'CLOSED'
+        : isCompleted
+            ? 'COMPLETED'
+            : (isStarted ? 'LIVE NOW' : 'WAITING');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -556,11 +569,15 @@ class _HostRoomCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          !isClosed ? 'Manage' : 'View',
+                          isCompleted
+                              ? 'Claims & Payout'
+                              : (!isClosed ? 'Manage' : 'View'),
                           style: GoogleFonts.plusJakartaSans(
-                            color: !isClosed
-                                ? AppTheme.primaryLight
-                                : AppTheme.textMuted,
+                            color: isCompleted
+                                ? AppTheme.goldLight
+                                : (!isClosed
+                                    ? AppTheme.primaryLight
+                                    : AppTheme.textMuted),
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),
@@ -568,9 +585,11 @@ class _HostRoomCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Icon(
                           Icons.arrow_forward_rounded,
-                          color: !isClosed
-                              ? AppTheme.primaryLight
-                              : AppTheme.textMuted,
+                          color: isCompleted
+                              ? AppTheme.goldLight
+                              : (!isClosed
+                                  ? AppTheme.primaryLight
+                                  : AppTheme.textMuted),
                           size: 13,
                         ),
                       ],

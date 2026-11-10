@@ -329,6 +329,7 @@ class _TournamentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFull = room.players.length >= room.maxPlayers;
     final isStarted = room.status == 'started';
+    final isCompleted = room.status == 'completed';
     final startTimeStr =
         DateFormat('EEE, MMM dd • hh:mm a').format(room.startTime);
     final fillRatio = (room.players.length / room.maxPlayers).clamp(0.0, 1.0);
@@ -336,8 +337,10 @@ class _TournamentCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: AppTheme.glassCard(
-        borderColor: isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold,
-        isGold: isStarted,
+        borderColor: isCompleted
+            ? AppTheme.gold
+            : (isStarted ? AppTheme.accentGreen : AppTheme.cardBorderGold),
+        isGold: isCompleted || isStarted,
         borderRadius: 18,
       ),
       child: Material(
@@ -389,18 +392,24 @@ class _TournamentCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: (isStarted
-                                ? AppTheme.accentGreen
-                                : (isFull
-                                    ? AppTheme.accentRed
-                                    : AppTheme.primary))
+                        color: (isCompleted
+                                ? AppTheme.gold
+                                : (isStarted
+                                    ? AppTheme.accentGreen
+                                    : (isFull
+                                        ? AppTheme.accentRed
+                                        : AppTheme.primary)))
                             .withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (isStarted) ...[
+                          if (isCompleted) ...[
+                            const Icon(Icons.emoji_events_rounded,
+                                color: AppTheme.gold, size: 12),
+                            const SizedBox(width: 4),
+                          ] else if (isStarted) ...[
                             Container(
                               width: 6,
                               height: 6,
@@ -412,15 +421,19 @@ class _TournamentCard extends StatelessWidget {
                             const SizedBox(width: 5),
                           ],
                           Text(
-                            isStarted
-                                ? 'LIVE NOW'
-                                : (isFull ? 'FULL' : 'REGISTERING'),
+                            isCompleted
+                                ? 'FINISHED'
+                                : (isStarted
+                                    ? 'LIVE NOW'
+                                    : (isFull ? 'FULL' : 'REGISTERING')),
                             style: GoogleFonts.plusJakartaSans(
-                              color: isStarted
-                                  ? AppTheme.accentGreen
-                                  : (isFull
-                                      ? AppTheme.accentRed
-                                      : AppTheme.primaryLight),
+                              color: isCompleted
+                                  ? AppTheme.goldLight
+                                  : (isStarted
+                                      ? AppTheme.accentGreen
+                                      : (isFull
+                                          ? AppTheme.accentRed
+                                          : AppTheme.primaryLight)),
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,

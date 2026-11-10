@@ -75,6 +75,11 @@ class TournamentRoom {
       credentialsVisibleAt == null ||
       !DateTime.now().isBefore(credentialsVisibleAt!);
 
+  bool get isWaiting => status == 'waiting';
+  bool get isStarted => status == 'started';
+  bool get isCompleted => status == 'completed';
+  bool get isClosed => status == 'closed';
+
   Map<String, dynamic> toMap() => {
         'name': name,
         'game': game,
