@@ -6,6 +6,7 @@ import 'package:khelahost/core/theme.dart';
 import 'package:khelahost/models/tournament_room.dart';
 import 'package:khelahost/models/winner_claim.dart';
 import 'package:khelahost/services/room_service.dart';
+import 'package:khelahost/widgets/claim_window_timer.dart';
 import 'package:khelahost/widgets/image_viewer_dialog.dart';
 import 'package:khelahost/widgets/winner_claim_dialog.dart';
 
@@ -117,6 +118,10 @@ class _HostClaimsView extends StatelessWidget {
             ),
           ],
         ),
+        if (room.isCompleted && room.claimDeadline != null) ...[
+          const SizedBox(height: 10),
+          ClaimWindowTimer(deadline: room.claimDeadline!),
+        ],
         const SizedBox(height: 12),
         if (isLoading)
           const Center(
@@ -444,6 +449,57 @@ class _ClaimCardForHost extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
+          // Screenshot section header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.image_rounded,
+                      size: 14, color: AppTheme.primaryLight),
+                  const SizedBox(width: 6),
+                  Text(
+                    'VICTORY SCREENSHOT',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () => ImageViewerDialog.show(
+                  context,
+                  claim.screenshotUrl,
+                  title: '${claim.playerName}\'s Victory Proof',
+                ),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.fullscreen_rounded,
+                          color: AppTheme.goldLight, size: 15),
+                      const SizedBox(width: 4),
+                      Text(
+                        'View Fullscreen',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.goldLight,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
           // Screenshot thumbnail with click to zoom
           GestureDetector(
             onTap: () => ImageViewerDialog.show(
@@ -452,7 +508,7 @@ class _ClaimCardForHost extends StatelessWidget {
               title: '${claim.playerName}\'s Victory Proof',
             ),
             child: Container(
-              height: 140,
+              height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
@@ -467,6 +523,18 @@ class _ClaimCardForHost extends StatelessWidget {
                     Image.network(
                       claim.screenshotUrl,
                       fit: BoxFit.cover,
+                      loadingBuilder: (ctx, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          color: AppTheme.bgSurface,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.primaryLight,
+                            ),
+                          ),
+                        );
+                      },
                       errorBuilder: (ctx, err, stack) => const Center(
                         child: Icon(Icons.broken_image_rounded,
                             color: AppTheme.textMuted),
@@ -489,7 +557,7 @@ class _ClaimCardForHost extends StatelessWidget {
                                 color: Colors.white, size: 14),
                             const SizedBox(width: 4),
                             Text(
-                              'Tap to expand proof',
+                              'Tap to expand / zoom',
                               style: GoogleFonts.inter(
                                 color: Colors.white,
                                 fontSize: 10.5,
@@ -851,28 +919,73 @@ class _ParticipantClaimView extends StatelessWidget {
 
             if (!claim!.isApproved) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => WinnerClaimDialog.show(
-                    context,
-                    roomId: room.id,
-                    playerUid: uid,
-                    playerName: playerName,
-                    existingClaim: claim,
+              if (room.isClaimWindowExpired)
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bgSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.cardBorder),
                   ),
-                  icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text('Update Proof / Phone Number'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.goldLight,
-                    side: const BorderSide(color: AppTheme.gold),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.lock_clock_rounded,
+                          size: 14, color: AppTheme.textMuted),
+                      const SizedBox(width: 6),
+                      Text(
+                        '3-Hour submission deadline ended. Under host review.',
+                        style: GoogleFonts.inter(
+                          color: AppTheme.textMuted,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                if (room.claimDeadline != null) ...[
+                  Row(
+                    children: [
+                      Text(
+                        'Window closes in: ',
+                        style: GoogleFonts.inter(
+                            color: AppTheme.textMuted, fontSize: 11),
+                      ),
+                      ClaimWindowTimer(
+                        deadline: room.claimDeadline!,
+                        compact: true,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => WinnerClaimDialog.show(
+                      context,
+                      roomId: room.id,
+                      playerUid: uid,
+                      playerName: playerName,
+                      existingClaim: claim,
+                      claimDeadline: room.claimDeadline,
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    icon: const Icon(Icons.edit_rounded, size: 16),
+                    label: const Text('Update Proof / Phone Number'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.goldLight,
+                      side: const BorderSide(color: AppTheme.gold),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ],
         ),
@@ -880,11 +993,62 @@ class _ParticipantClaimView extends StatelessWidget {
     }
 
     // If player hasn't submitted yet
-    // Show claim button if match is completed or started
     final canClaim = room.status == 'completed' || room.status == 'started';
     if (!canClaim) {
       return const SizedBox.shrink();
     }
+
+    // Check if 3-hour window expired
+    if (room.isClaimWindowExpired) {
+      return Container(
+        decoration: AppTheme.glassCard(
+          borderColor: AppTheme.accentRed.withValues(alpha: 0.5),
+          borderRadius: 16,
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.accentRed.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.timer_off_rounded,
+                  color: AppTheme.accentRed, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '3-HOUR CLAIM WINDOW EXPIRED',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.accentRed,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'The 3-hour deadline after match completion has expired. No new victory screenshots can be submitted.',
+                    style: GoogleFonts.inter(
+                      color: AppTheme.textSecondary,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final deadline = room.claimDeadline;
 
     return Container(
       decoration: BoxDecoration(
@@ -929,7 +1093,7 @@ class _ParticipantClaimView extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Upload your victory screenshot & payment phone number to receive your prize.',
+                      'You have 3 hours after match completion to upload your victory screenshot & payment phone number.',
                       style: GoogleFonts.inter(
                         color: AppTheme.textSecondary,
                         fontSize: 12,
@@ -940,6 +1104,10 @@ class _ParticipantClaimView extends StatelessWidget {
               ),
             ],
           ),
+          if (room.isCompleted && deadline != null) ...[
+            const SizedBox(height: 12),
+            ClaimWindowTimer(deadline: deadline),
+          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -949,6 +1117,7 @@ class _ParticipantClaimView extends StatelessWidget {
                 roomId: room.id,
                 playerUid: uid,
                 playerName: playerName,
+                claimDeadline: deadline,
               ),
               icon: const Icon(Icons.cloud_upload_rounded, size: 18),
               label: const Text('Upload Winner Screenshot & Phone'),

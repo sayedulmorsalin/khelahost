@@ -6,6 +6,7 @@ import 'package:khelahost/core/constants.dart';
 import 'package:khelahost/core/theme.dart';
 import 'package:khelahost/models/tournament_room.dart';
 import 'package:khelahost/services/room_service.dart';
+import 'package:khelahost/widgets/claim_window_timer.dart';
 import 'package:khelahost/widgets/countdown_widget.dart';
 import 'package:khelahost/widgets/player_list_tile.dart';
 import 'package:khelahost/widgets/room_info_card.dart';
@@ -228,6 +229,8 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildMatchCompletedBanner(TournamentRoom room) {
+    final deadline = room.claimDeadline;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -245,46 +248,55 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
           width: 1.2,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.gold.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.emoji_events_rounded,
-              color: AppTheme.gold,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MATCH COMPLETED',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: AppTheme.goldLight,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                  ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.gold.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  'The tournament has ended! Winners can upload screenshot proof and their payout phone number below.',
-                  style: GoogleFonts.inter(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: AppTheme.gold,
+                  size: 26,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'MATCH COMPLETED',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.goldLight,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Winners have 3 hours from match completion to upload their victory screenshot & payment phone number.',
+                      style: GoogleFonts.inter(
+                        color: AppTheme.textSecondary,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          if (deadline != null) ...[
+            const SizedBox(height: 12),
+            ClaimWindowTimer(deadline: deadline),
+          ],
         ],
       ),
     );
@@ -822,7 +834,7 @@ class _RoomScreenState extends State<RoomScreen> with TickerProviderStateMixin {
             else
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _service.updateStatus(room.id, 'started'),
+                  onPressed: () => _service.resumeMatch(room.id),
                   icon: const Icon(Icons.replay_rounded, size: 16),
                   label: const Text('Resume Match'),
                   style: OutlinedButton.styleFrom(

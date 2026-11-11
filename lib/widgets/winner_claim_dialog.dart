@@ -6,12 +6,14 @@ import 'package:khelahost/core/theme.dart';
 import 'package:khelahost/models/winner_claim.dart';
 import 'package:khelahost/services/image_upload_service.dart';
 import 'package:khelahost/services/room_service.dart';
+import 'package:khelahost/widgets/claim_window_timer.dart';
 
 class WinnerClaimDialog extends StatefulWidget {
   final String roomId;
   final String playerUid;
   final String playerName;
   final WinnerClaim? existingClaim;
+  final DateTime? claimDeadline;
 
   const WinnerClaimDialog({
     super.key,
@@ -19,6 +21,7 @@ class WinnerClaimDialog extends StatefulWidget {
     required this.playerUid,
     required this.playerName,
     this.existingClaim,
+    this.claimDeadline,
   });
 
   static Future<bool?> show(
@@ -27,6 +30,7 @@ class WinnerClaimDialog extends StatefulWidget {
     required String playerUid,
     required String playerName,
     WinnerClaim? existingClaim,
+    DateTime? claimDeadline,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -37,6 +41,7 @@ class WinnerClaimDialog extends StatefulWidget {
         playerUid: playerUid,
         playerName: playerName,
         existingClaim: existingClaim,
+        claimDeadline: claimDeadline,
       ),
     );
   }
@@ -110,6 +115,19 @@ class _WinnerClaimDialogState extends State<WinnerClaimDialog> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (widget.claimDeadline != null &&
+        DateTime.now().isAfter(widget.claimDeadline!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'The 3-hour submission window has expired. Submissions are now closed.'),
+          backgroundColor: AppTheme.accentRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     if (_pickedFile == null &&
         (widget.existingClaim?.screenshotUrl == null ||
@@ -268,6 +286,13 @@ class _WinnerClaimDialogState extends State<WinnerClaimDialog> {
                             fontSize: 11,
                           ),
                         ),
+                        if (widget.claimDeadline != null) ...[
+                          const SizedBox(height: 6),
+                          ClaimWindowTimer(
+                            deadline: widget.claimDeadline!,
+                            compact: true,
+                          ),
+                        ],
                       ],
                     ),
                   ),

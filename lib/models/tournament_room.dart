@@ -48,8 +48,9 @@ class TournamentRoom {
   final DateTime createdAt;
   final String hostId;
   final List<Player> players;
-  final String status; // 'waiting' | 'started' | 'closed'
+  final String status; // 'waiting' | 'started' | 'completed' | 'closed'
   final DateTime? credentialsVisibleAt;
+  final DateTime? completedAt;
 
   TournamentRoom({
     required this.id,
@@ -66,6 +67,7 @@ class TournamentRoom {
     required this.players,
     required this.status,
     this.credentialsVisibleAt,
+    this.completedAt,
   });
 
   bool get hasCredentials =>
@@ -79,6 +81,30 @@ class TournamentRoom {
   bool get isStarted => status == 'started';
   bool get isCompleted => status == 'completed';
   bool get isClosed => status == 'closed';
+
+  // 3-hour window after match completion for winner screenshot submissions
+  DateTime? get claimDeadline =>
+      completedAt?.add(const Duration(hours: 3));
+
+  bool get isClaimWindowOpen {
+    if (!isCompleted) return false;
+    if (completedAt == null) return true;
+    return DateTime.now().isBefore(claimDeadline!);
+  }
+
+  bool get isClaimWindowExpired {
+    if (!isCompleted) return false;
+    if (completedAt == null) return false;
+    return DateTime.now().isAfter(claimDeadline!);
+  }
+
+  Duration get remainingClaimTime {
+    if (claimDeadline == null) {
+      return isCompleted ? const Duration(hours: 3) : Duration.zero;
+    }
+    final diff = claimDeadline!.difference(DateTime.now());
+    return diff.isNegative ? Duration.zero : diff;
+  }
 
   Map<String, dynamic> toMap() => {
         'name': name,
@@ -95,6 +121,9 @@ class TournamentRoom {
         'status': status,
         'credentialsVisibleAt': credentialsVisibleAt != null
             ? Timestamp.fromDate(credentialsVisibleAt!)
+            : null,
+        'completedAt': completedAt != null
+            ? Timestamp.fromDate(completedAt!)
             : null,
       };
 
@@ -124,6 +153,9 @@ class TournamentRoom {
       credentialsVisibleAt: data['credentialsVisibleAt'] != null
           ? _parseDateTime(data['credentialsVisibleAt'])
           : null,
+      completedAt: data['completedAt'] != null
+          ? _parseDateTime(data['completedAt'])
+          : null,
     );
   }
 
@@ -144,6 +176,8 @@ class TournamentRoom {
     int? maxPlayers,
     DateTime? credentialsVisibleAt,
     bool clearCredentialsTimer = false,
+    DateTime? completedAt,
+    bool clearCompletedAt = false,
   }) =>
       TournamentRoom(
         id: id,
@@ -162,5 +196,8 @@ class TournamentRoom {
         credentialsVisibleAt: clearCredentialsTimer
             ? null
             : (credentialsVisibleAt ?? this.credentialsVisibleAt),
+        completedAt: clearCompletedAt
+            ? null
+            : (completedAt ?? this.completedAt),
       );
 }

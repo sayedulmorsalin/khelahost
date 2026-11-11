@@ -70,9 +70,20 @@ class RoomService {
     await _db.collection(_collection).doc(docId).update({'status': 'closed'});
   }
 
-  // Mark room match as completed
+  // Mark room match as completed and record timestamp for the 3-hour submission window
   Future<void> completeMatch(String docId) async {
-    await _db.collection(_collection).doc(docId).update({'status': 'completed'});
+    await _db.collection(_collection).doc(docId).update({
+      'status': 'completed',
+      'completedAt': Timestamp.now(),
+    });
+  }
+
+  // Resume match back to started
+  Future<void> resumeMatch(String docId) async {
+    await _db.collection(_collection).doc(docId).update({
+      'status': 'started',
+      'completedAt': null,
+    });
   }
 
   // Submit or update winner claim
